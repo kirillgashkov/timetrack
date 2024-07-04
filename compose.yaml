@@ -4,5 +4,8 @@ services:
     entrypoint: ["server"]
     env_file:
       - example.env
+    environment:
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8000
     ports:
       - "8000:8000"
