@@ -1,0 +1,40 @@
+package config
+
+import (
+	"fmt"
+
+	"github.com/caarlos0/env/v11"
+)
+
+const (
+	ModeDevelopment = "development"
+	ModeProduction  = "production"
+)
+
+type Config struct {
+	Mode string `env:"SERVER_MODE" envDefault:"development"`
+	Host string `env:"SERVER_HOST" envDefault:"127.0.0.1"`
+	Port string `env:"SERVER_PORT" envDefault:"8000"`
+}
+
+func New() (*Config, error) {
+	cfg := &Config{}
+	if err := env.Parse(cfg); err != nil {
+		return nil, err
+	}
+	if err := validate(cfg); err != nil {
+		return nil, err
+	}
+	return cfg, nil
+}
+
+func validate(cfg *Config) error {
+	switch cfg.Mode {
+	case ModeDevelopment:
+	case ModeProduction:
+	default:
+		return fmt.Errorf("invalid mode: %s", cfg.Mode)
+	}
+
+	return nil
+}
