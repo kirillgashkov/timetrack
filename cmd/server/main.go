@@ -2,7 +2,11 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
+
+	"github.com/kirillgashkov/assignment-timetrack/internal/server/config"
+	"github.com/kirillgashkov/assignment-timetrack/internal/server/logging"
 )
 
 func main() {
@@ -14,5 +18,13 @@ func main() {
 }
 
 func mainErr() error {
+	cfg, err := config.New()
+	if err != nil {
+		return err
+	}
+
+	logger := logging.NewLogger(cfg)
+	slog.SetDefault(logger)
+
 	return nil
 }
