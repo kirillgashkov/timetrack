@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/deepmap/oapi-codegen/HEAD/configuration-schema.json
+package: timetrackapi
+generate:
+  std-http-server: true
+  models: true
+output: timetrackapi/timetrackapi.go
