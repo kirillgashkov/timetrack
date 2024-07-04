@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/kirillgashkov/assignment-timetrack/internal/server/config"
-	"github.com/kirillgashkov/assignment-timetrack/internal/server/logging"
+	"github.com/kirillgashkov/assignment-timetrack/internal/config"
+	"github.com/kirillgashkov/assignment-timetrack/internal/logging"
 )
 
 func main() {
