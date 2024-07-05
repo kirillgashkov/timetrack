@@ -5,7 +5,10 @@ info:
 paths: {}
 components:
   securitySchemes:
-    bearer:
+    bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: OAuth2
+  responses:
+    UnauthorizedError:
+      description: Unauthorized
