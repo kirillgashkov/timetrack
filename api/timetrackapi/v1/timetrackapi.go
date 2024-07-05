@@ -20,6 +20,11 @@ type Error struct {
 	Message string `json:"message"`
 }
 
+// Health defines model for Health.
+type Health struct {
+	Status string `json:"status"`
+}
+
 // User defines model for User.
 type User = map[string]interface{}
 
@@ -31,6 +36,9 @@ type PostUsersJSONRequestBody = UserCreate
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+
+	// (GET /health)
+	GetHealth(w http.ResponseWriter, r *http.Request)
 
 	// (POST /users/)
 	PostUsers(w http.ResponseWriter, r *http.Request)
@@ -47,6 +55,21 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// GetHealth operation middleware
+func (siw *ServerInterfaceWrapper) GetHealth(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetHealth(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
 
 // PostUsers operation middleware
 func (siw *ServerInterfaceWrapper) PostUsers(w http.ResponseWriter, r *http.Request) {
@@ -194,6 +217,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	m.HandleFunc("GET "+options.BaseURL+"/health", wrapper.GetHealth)
 	m.HandleFunc("POST "+options.BaseURL+"/users/", wrapper.PostUsers)
 	m.HandleFunc("GET "+options.BaseURL+"/users/current", wrapper.GetUsersCurrent)
 
