@@ -3,4 +3,5 @@ package: timetrackapi
 generate:
   std-http-server: true
   models: true
-output: timetrackapi/timetrackapi.go
+# output is relative to package api because it has the go:generate directive.
+output: timetrackapi/v1/timetrackapi.go
