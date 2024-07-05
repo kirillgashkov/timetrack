@@ -3,3 +3,9 @@ info:
   title: TimeTrack
   version: 0.0.0
 paths: {}
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: OAuth2
