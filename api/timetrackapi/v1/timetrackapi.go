@@ -6,12 +6,37 @@
 package timetrackapi
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 )
 
+const (
+	BearerAuthScopes = "bearerAuth.Scopes"
+)
+
+// Error defines model for Error.
+type Error struct {
+	Message string `json:"message"`
+}
+
+// User defines model for User.
+type User = map[string]interface{}
+
+// UserCreate defines model for UserCreate.
+type UserCreate = map[string]interface{}
+
+// PostUsersJSONRequestBody defines body for PostUsers for application/json ContentType.
+type PostUsersJSONRequestBody = UserCreate
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+
+	// (POST /users/)
+	PostUsers(w http.ResponseWriter, r *http.Request)
+
+	// (GET /users/current)
+	GetUsersCurrent(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -22,6 +47,38 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// PostUsers operation middleware
+func (siw *ServerInterfaceWrapper) PostUsers(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostUsers(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetUsersCurrent operation middleware
+func (siw *ServerInterfaceWrapper) GetUsersCurrent(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUsersCurrent(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
 
 type UnescapedCookieParamError struct {
 	ParamName string
@@ -130,6 +187,15 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		}
 	}
+
+	wrapper := ServerInterfaceWrapper{
+		Handler:            si,
+		HandlerMiddlewares: options.Middlewares,
+		ErrorHandlerFunc:   options.ErrorHandlerFunc,
+	}
+
+	m.HandleFunc("POST "+options.BaseURL+"/users/", wrapper.PostUsers)
+	m.HandleFunc("GET "+options.BaseURL+"/users/current", wrapper.GetUsersCurrent)
 
 	return m
 }
