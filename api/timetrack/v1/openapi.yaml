@@ -88,4 +88,7 @@ components:
 
     UserCreate:
       type: object
-      # ...
+      required: [passportNumber]
+      properties:
+        passportNumber:
+          type: string

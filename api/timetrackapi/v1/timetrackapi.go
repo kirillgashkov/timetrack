@@ -29,7 +29,9 @@ type Health struct {
 type User = map[string]interface{}
 
 // UserCreate defines model for UserCreate.
-type UserCreate = map[string]interface{}
+type UserCreate struct {
+	PassportNumber string `json:"passportNumber"`
+}
 
 // PostUsersJSONRequestBody defines body for PostUsers for application/json ContentType.
 type PostUsersJSONRequestBody = UserCreate
