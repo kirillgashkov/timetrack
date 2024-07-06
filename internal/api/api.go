@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/kirillgashkov/assignment-timetrack/api/timetrackapi/v1"
+
 	"github.com/kirillgashkov/assignment-timetrack/internal/config"
 )
 
@@ -17,6 +19,27 @@ func NewServer(cfg *config.Config) http.Server {
 }
 
 func newHandler(cfg *config.Config) http.Handler {
+	si := newServerInterface(cfg)
 	mux := http.NewServeMux()
-	return mux
+	return timetrackapi.HandlerFromMux(si, mux)
+}
+
+type serverInterface struct {
+	dsn string
+}
+
+func newServerInterface(cfg *config.Config) *serverInterface {
+	return &serverInterface{dsn: ""}
+}
+
+func (si *serverInterface) GetHealth(w http.ResponseWriter, r *http.Request) {
+	panic("implement me")
+}
+
+func (si *serverInterface) PostUsers(w http.ResponseWriter, r *http.Request) {
+	panic("implement me")
+}
+
+func (si *serverInterface) GetUsersCurrent(w http.ResponseWriter, r *http.Request) {
+	panic("implement me")
 }
