@@ -2,11 +2,12 @@ package api
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/kirillgashkov/assignment-timetrack/api/timetrackapi/v1"
 	"github.com/kirillgashkov/assignment-timetrack/internal/api/request"
@@ -38,7 +39,7 @@ func newHandler(ctx context.Context, cfg *config.Config) (http.Handler, error) {
 }
 
 type serverInterface struct {
-	db *sql.DB
+	db *pgxpool.Pool
 }
 
 func newServerInterface(ctx context.Context, cfg *config.Config) (*serverInterface, error) {
@@ -49,15 +50,19 @@ func newServerInterface(ctx context.Context, cfg *config.Config) (*serverInterfa
 	return &serverInterface{db: db}, nil
 }
 
-func newDB(ctx context.Context, dsn string) (*sql.DB, error) {
-	db, err := sql.Open("postgres", dsn)
+func newDB(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
+	db, err := pgxpool.New(ctx, dsn)
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to open database"), err)
 	}
-	if err = db.PingContext(ctx); err != nil {
+	if err = db.Ping(ctx); err != nil {
 		return nil, errors.Join(errors.New("failed to ping database"), err)
 	}
 	return db, nil
+}
+
+func (si *serverInterface) Close() {
+	si.db.Close()
 }
 
 func (si *serverInterface) GetHealth(w http.ResponseWriter, _ *http.Request) {
