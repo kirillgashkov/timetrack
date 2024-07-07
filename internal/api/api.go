@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"errors"
 	"net"
 	"net/http"
@@ -15,11 +14,12 @@ import (
 	"github.com/kirillgashkov/assignment-timetrack/internal/config"
 )
 
-func NewServer(ctx context.Context, cfg *config.Config) (*http.Server, error) {
-	h, err := newHandler(ctx, cfg)
+func NewServer(cfg *config.Config, db *pgxpool.Pool) (*http.Server, error) {
+	h, err := newHandler(db)
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to create handler"), err)
 	}
+
 	return &http.Server{
 		Addr:              net.JoinHostPort(cfg.Host, cfg.Port),
 		Handler:           h,
@@ -27,42 +27,14 @@ func NewServer(ctx context.Context, cfg *config.Config) (*http.Server, error) {
 	}, nil
 }
 
-func newHandler(ctx context.Context, cfg *config.Config) (http.Handler, error) {
-	si, err := newServerInterface(ctx, cfg)
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to create server interface"), err)
-	}
-
+func newHandler(db *pgxpool.Pool) (http.Handler, error) {
+	si := &serverInterface{db: db}
 	mux := http.NewServeMux()
-
 	return timetrackapi.HandlerFromMux(si, mux), nil
 }
 
 type serverInterface struct {
 	db *pgxpool.Pool
-}
-
-func newServerInterface(ctx context.Context, cfg *config.Config) (*serverInterface, error) {
-	db, err := newDB(ctx, cfg.DSN)
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to create database pool"), err)
-	}
-	return &serverInterface{db: db}, nil
-}
-
-func newDB(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
-	db, err := pgxpool.New(ctx, dsn)
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to open database"), err)
-	}
-	if err = db.Ping(ctx); err != nil {
-		return nil, errors.Join(errors.New("failed to ping database"), err)
-	}
-	return db, nil
-}
-
-func (si *serverInterface) Close() {
-	si.db.Close()
 }
 
 func (si *serverInterface) GetHealth(w http.ResponseWriter, _ *http.Request) {

@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/kirillgashkov/assignment-timetrack/internal/database"
+
 	"github.com/kirillgashkov/assignment-timetrack/internal/api"
 
 	"github.com/kirillgashkov/assignment-timetrack/internal/config"
@@ -33,7 +35,13 @@ func mainErr() error {
 	logger := logging.NewLogger(cfg)
 	slog.SetDefault(logger)
 
-	srv, err := api.NewServer(ctx, cfg)
+	db, err := database.NewPool(ctx, cfg.DSN)
+	if err != nil {
+		return errors.Join(errors.New("failed to create database pool"), err)
+	}
+	defer db.Close()
+
+	srv, err := api.NewServer(cfg, db)
 	if err != nil {
 		return errors.Join(errors.New("failed to create server"), err)
 	}
