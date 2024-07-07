@@ -5,6 +5,7 @@ go 1.22.4
 require (
 	github.com/caarlos0/env/v11 v11.1.0
 	github.com/golang-migrate/migrate/v4 v4.17.1
+	github.com/jackc/pgerrcode v0.0.0-20240316143900-6e2875d9b438
 	github.com/jackc/pgx/v5 v5.6.0
 	github.com/oapi-codegen/oapi-codegen/v2 v2.3.0
 )
