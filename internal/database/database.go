@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 
+	"github.com/kirillgashkov/assignment-timetrack/internal/config"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func NewPool(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
-	db, err := pgxpool.New(ctx, dsn)
+func NewPool(ctx context.Context, cfg *config.DatabaseConfig) (*pgxpool.Pool, error) {
+	db, err := pgxpool.New(ctx, cfg.DSN)
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to open database"), err)
 	}

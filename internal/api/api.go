@@ -14,7 +14,7 @@ import (
 	"github.com/kirillgashkov/assignment-timetrack/internal/config"
 )
 
-func NewServer(cfg *config.Config, db *pgxpool.Pool) (*http.Server, error) {
+func NewServer(cfg *config.ServerConfig, db *pgxpool.Pool) (*http.Server, error) {
 	h, err := newHandler(db)
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to create handler"), err)

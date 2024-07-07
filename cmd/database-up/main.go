@@ -37,7 +37,7 @@ func mainErr() error {
 	logger := logging.NewLogger(cfg)
 	slog.SetDefault(logger)
 
-	db, err := newDB(ctx, cfg.DSN)
+	db, err := newDB(ctx, &cfg.Database)
 	if err != nil {
 		return errors.Join(errors.New("failed to create database"), err)
 	}
@@ -49,8 +49,8 @@ func mainErr() error {
 	return nil
 }
 
-func newDB(ctx context.Context, dsn string) (*sql.DB, error) {
-	db, err := sql.Open("pgx", dsn)
+func newDB(ctx context.Context, cfg *config.DatabaseConfig) (*sql.DB, error) {
+	db, err := sql.Open("pgx", cfg.DSN)
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to open database"), err)
 	}

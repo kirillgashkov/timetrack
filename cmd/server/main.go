@@ -35,13 +35,13 @@ func mainErr() error {
 	logger := logging.NewLogger(cfg)
 	slog.SetDefault(logger)
 
-	db, err := database.NewPool(ctx, cfg.DSN)
+	db, err := database.NewPool(ctx, &cfg.Database)
 	if err != nil {
 		return errors.Join(errors.New("failed to create database pool"), err)
 	}
 	defer db.Close()
 
-	srv, err := api.NewServer(cfg, db)
+	srv, err := api.NewServer(&cfg.Server, db)
 	if err != nil {
 		return errors.Join(errors.New("failed to create server"), err)
 	}
