@@ -1,12 +1,16 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 
-	"github.com/kirillgashkov/assignment-timetrack/internal/server/config"
-	"github.com/kirillgashkov/assignment-timetrack/internal/server/logging"
+	"github.com/kirillgashkov/assignment-timetrack/internal/api"
+
+	"github.com/kirillgashkov/assignment-timetrack/internal/config"
+	"github.com/kirillgashkov/assignment-timetrack/internal/logging"
 )
 
 func main() {
@@ -25,6 +29,13 @@ func mainErr() error {
 
 	logger := logging.NewLogger(cfg)
 	slog.SetDefault(logger)
+
+	srv := api.NewServer(cfg)
+
+	slog.Info("starting server", "addr", srv.Addr, "mode", cfg.Mode)
+	if err = srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
 
 	return nil
 }
