@@ -48,7 +48,13 @@ func (si *serverInterface) PostUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	panic("implement me")
+	var one int
+	if err := si.db.QueryRow(r.Context(), "SELECT 1").Scan(&one); err != nil {
+		response.MustWriteInternalServerError(w)
+		return
+	}
+
+	response.MustWriteJSON(w, timetrackapi.User{"one": one}, http.StatusCreated)
 }
 
 func (si *serverInterface) GetUsersCurrent(w http.ResponseWriter, r *http.Request) {
