@@ -20,7 +20,7 @@ import (
 
 func main() {
 	if err := mainErr(); err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "error: %s\n", err.Error())
 		os.Exit(1)
 	}
 	os.Exit(0)
