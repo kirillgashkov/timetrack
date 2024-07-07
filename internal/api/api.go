@@ -106,6 +106,6 @@ func (si *serverInterface) PostUsers(w http.ResponseWriter, r *http.Request) {
 	response.MustWriteJSON(w, u, http.StatusOK)
 }
 
-func (si *serverInterface) GetUsersCurrent(w http.ResponseWriter, r *http.Request) {
+func (si *serverInterface) GetUsersCurrent(http.ResponseWriter, *http.Request) {
 	panic("implement me")
 }
