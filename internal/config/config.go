@@ -13,11 +13,16 @@ const (
 
 type Config struct {
 	Mode string `env:"SERVER_MODE" envDefault:"development"`
+
 	Host string `env:"SERVER_HOST" envDefault:"127.0.0.1"`
 	Port string `env:"SERVER_PORT" envDefault:"8000"`
+
 	// ReadHeaderTimeout is the maximum duration in seconds before timing out
 	// reading the headers of the request.
 	ReadHeaderTimeout int `env:"SERVER_READ_HEADER_TIMEOUT" envDefault:"1"`
+
+	// DSN is the data source name for the database connection.
+	DSN string `env:"SERVER_DSN,required"`
 }
 
 func New() (*Config, error) {
