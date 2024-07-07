@@ -50,6 +50,10 @@ func (si *serverInterface) PostUsers(w http.ResponseWriter, r *http.Request) {
 		response.MustWriteError(w, "invalid request", http.StatusUnprocessableEntity)
 		return
 	}
+	if userCreate.PassportNumber == "" {
+		response.MustWriteError(w, "missing passport number", http.StatusUnprocessableEntity)
+		return
+	}
 
 	type userDB struct {
 		ID             int
