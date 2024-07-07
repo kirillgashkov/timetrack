@@ -61,7 +61,7 @@ func newDB(ctx context.Context, dsn string) (*sql.DB, error) {
 }
 
 func migrateDB(db *sql.DB) error {
-	sourceDriver, err := iofs.New(timetrackdb.Migrations(), "")
+	sourceDriver, err := iofs.New(timetrackdb.Migrations(), ".")
 	if err != nil {
 		return errors.Join(errors.New("failed to create migrate source driver"), err)
 	}
@@ -77,7 +77,7 @@ func migrateDB(db *sql.DB) error {
 	}
 
 	if err = m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		return errors.Join(errors.New("failed to migrate database"), err)
+		return errors.Join(errors.New("failed to migrate"), err)
 	}
 	return nil
 }
