@@ -1,6 +1,9 @@
 package api
 
 import (
+	"context"
+	"database/sql"
+	"errors"
 	"net"
 	"net/http"
 	"time"
@@ -11,26 +14,50 @@ import (
 	"github.com/kirillgashkov/assignment-timetrack/internal/config"
 )
 
-func NewServer(cfg *config.Config) http.Server {
-	return http.Server{
-		Addr:              net.JoinHostPort(cfg.Host, cfg.Port),
-		Handler:           newHandler(cfg),
-		ReadHeaderTimeout: time.Duration(cfg.ReadHeaderTimeout) * time.Second,
+func NewServer(ctx context.Context, cfg *config.Config) (*http.Server, error) {
+	h, err := newHandler(ctx, cfg)
+	if err != nil {
+		return nil, errors.Join(errors.New("failed to create handler"), err)
 	}
+	return &http.Server{
+		Addr:              net.JoinHostPort(cfg.Host, cfg.Port),
+		Handler:           h,
+		ReadHeaderTimeout: time.Duration(cfg.ReadHeaderTimeout) * time.Second,
+	}, nil
 }
 
-func newHandler(cfg *config.Config) http.Handler {
-	si := newServerInterface(cfg)
+func newHandler(ctx context.Context, cfg *config.Config) (http.Handler, error) {
+	si, err := newServerInterface(ctx, cfg)
+	if err != nil {
+		return nil, errors.Join(errors.New("failed to create server interface"), err)
+	}
+
 	mux := http.NewServeMux()
-	return timetrackapi.HandlerFromMux(si, mux)
+
+	return timetrackapi.HandlerFromMux(si, mux), nil
 }
 
 type serverInterface struct {
-	dsn string
+	db *sql.DB
 }
 
-func newServerInterface(cfg *config.Config) *serverInterface {
-	return &serverInterface{dsn: ""}
+func newServerInterface(ctx context.Context, cfg *config.Config) (*serverInterface, error) {
+	db, err := newDB(ctx, cfg.DSN)
+	if err != nil {
+		return nil, errors.Join(errors.New("failed to create database pool"), err)
+	}
+	return &serverInterface{db: db}, nil
+}
+
+func newDB(ctx context.Context, dsn string) (*sql.DB, error) {
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		return nil, errors.Join(errors.New("failed to open database"), err)
+	}
+	if err = db.PingContext(ctx); err != nil {
+		return nil, errors.Join(errors.New("failed to ping database"), err)
+	}
+	return db, nil
 }
 
 func (si *serverInterface) GetHealth(w http.ResponseWriter, _ *http.Request) {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -22,19 +23,24 @@ func main() {
 }
 
 func mainErr() error {
+	ctx := context.Background()
+
 	cfg, err := config.New()
 	if err != nil {
-		return err
+		return errors.Join(errors.New("failed to create config"), err)
 	}
 
 	logger := logging.NewLogger(cfg)
 	slog.SetDefault(logger)
 
-	srv := api.NewServer(cfg)
+	srv, err := api.NewServer(ctx, cfg)
+	if err != nil {
+		return errors.Join(errors.New("failed to create server"), err)
+	}
 
 	slog.Info("starting server", "addr", srv.Addr, "mode", cfg.Mode)
 	if err = srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return err
+		return errors.Join(errors.New("failed to listen and serve"), err)
 	}
 
 	return nil
