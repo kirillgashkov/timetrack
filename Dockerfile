@@ -10,7 +10,9 @@ RUN go mod download
 
 # Copy sources.
 
+COPY ./api/ ./api/
 COPY ./cmd/ ./cmd/
+COPY ./db/ ./db/
 COPY ./internal/ ./internal/
 
 # Build application.
