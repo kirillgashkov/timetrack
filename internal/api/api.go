@@ -5,10 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/kirillgashkov/assignment-timetrack/internal/api/response"
-
 	"github.com/kirillgashkov/assignment-timetrack/api/timetrackapi/v1"
-
+	"github.com/kirillgashkov/assignment-timetrack/internal/api/request"
+	"github.com/kirillgashkov/assignment-timetrack/internal/api/response"
 	"github.com/kirillgashkov/assignment-timetrack/internal/config"
 )
 
@@ -39,6 +38,12 @@ func (si *serverInterface) GetHealth(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (si *serverInterface) PostUsers(w http.ResponseWriter, r *http.Request) {
+	var userCreate *timetrackapi.UserCreate
+	if err := request.ReadJSON(r, &userCreate); err != nil {
+		response.MustWriteError(w, "invalid request", http.StatusUnprocessableEntity)
+		return
+	}
+
 	panic("implement me")
 }
 
