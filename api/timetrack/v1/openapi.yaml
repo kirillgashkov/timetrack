@@ -84,8 +84,24 @@ components:
 
     User:
       type: object
-      # ...
+      required: [id, passportNumber, surname, name, address]
+      properties:
+        id:
+          type: integer
+        passportNumber:
+          type: string
+        surname:
+          type: string
+        name:
+          type: string
+        patronymic:
+          type: string
+        address:
+          type: string
 
     UserCreate:
       type: object
-      # ...
+      required: [passportNumber]
+      properties:
+        passportNumber:
+          type: string
