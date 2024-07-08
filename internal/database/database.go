@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/kirillgashkov/assignment-timetrack/internal/config"
+	"github.com/kirillgashkov/timetrack/internal/config"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )

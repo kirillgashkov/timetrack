@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/kirillgashkov/assignment-timetrack/api/timetrackapi/v1"
+	"github.com/kirillgashkov/timetrack/api/timetrackapi/v1"
 )
 
 func MustWriteJSON(w http.ResponseWriter, v any, code int) {

@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/kirillgashkov/assignment-timetrack/internal/api"
-	"github.com/kirillgashkov/assignment-timetrack/internal/config"
-	"github.com/kirillgashkov/assignment-timetrack/internal/database"
-	"github.com/kirillgashkov/assignment-timetrack/internal/logging"
-	"github.com/kirillgashkov/assignment-timetrack/internal/user"
+	"github.com/kirillgashkov/timetrack/internal/api"
+	"github.com/kirillgashkov/timetrack/internal/config"
+	"github.com/kirillgashkov/timetrack/internal/database"
+	"github.com/kirillgashkov/timetrack/internal/logging"
+	"github.com/kirillgashkov/timetrack/internal/user"
 )
 
 func main() {

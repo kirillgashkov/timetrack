@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kirillgashkov/assignment-timetrack/api/timetrackapi/v1"
-	"github.com/kirillgashkov/assignment-timetrack/internal/api/request"
-	"github.com/kirillgashkov/assignment-timetrack/internal/api/response"
-	"github.com/kirillgashkov/assignment-timetrack/internal/config"
-	"github.com/kirillgashkov/assignment-timetrack/internal/user"
+	"github.com/kirillgashkov/timetrack/api/timetrackapi/v1"
+	"github.com/kirillgashkov/timetrack/internal/api/request"
+	"github.com/kirillgashkov/timetrack/internal/api/response"
+	"github.com/kirillgashkov/timetrack/internal/config"
+	"github.com/kirillgashkov/timetrack/internal/user"
 )
 
 type serverInterface struct {

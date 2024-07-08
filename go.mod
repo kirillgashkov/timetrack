@@ -1,4 +1,4 @@
-module github.com/kirillgashkov/assignment-timetrack
+module github.com/kirillgashkov/timetrack
 
 go 1.22.4
 

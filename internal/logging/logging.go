@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/kirillgashkov/assignment-timetrack/internal/config"
+	"github.com/kirillgashkov/timetrack/internal/config"
 )
 
 func NewLogger(cfg *config.Config) *slog.Logger {
