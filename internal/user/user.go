@@ -41,6 +41,10 @@ type Service struct {
 	db *pgxpool.Pool
 }
 
+func NewService(db *pgxpool.Pool) *Service {
+	return &Service{db: db}
+}
+
 var ErrAlreadyExists = errors.New("user already exists")
 
 func (s *Service) Create(ctx context.Context, passportNumber string) (*User, error) {
