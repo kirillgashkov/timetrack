@@ -25,19 +25,28 @@ CREATE TABLE IF NOT EXISTS tasks (
 );
 CREATE INDEX IF NOT EXISTS tasks_description_trgm_idx ON tasks USING gin (description gin_trgm_ops);
 
-CREATE TABLE IF NOT EXISTS times (
-    id serial NOT NULL,
+CREATE TABLE IF NOT EXISTS tasks_users (
     task_id integer NOT NULL,
     user_id integer NOT NULL,
-    started_at timestamp with time zone NOT NULL,
-    ended_at timestamp with time zone,
+    status text NOT NULL,
+    PRIMARY KEY (task_id, user_id),
+    FOREIGN KEY (task_id) REFERENCES tasks (id),
+    FOREIGN KEY (user_id) REFERENCES users (id),
+    CHECK (status IN ('active', 'inactive'))
+);
+-- TODO: Add indexes.
+
+CREATE TABLE IF NOT EXISTS events (
+    id serial NOT NULL,
+    type text NOT NULL,
+    timestamp timestamp with time zone NOT NULL,
+    task_id integer NOT NULL,
+    user_id integer NOT NULL,
     PRIMARY KEY (id),
     FOREIGN KEY (task_id) REFERENCES tasks (id),
-    FOREIGN KEY (user_id) REFERENCES users (passport_number)
+    FOREIGN KEY (user_id) REFERENCES users (id),
+    CHECK (type IN ('start', 'stop'))
 );
-CREATE INDEX IF NOT EXISTS times_task_id_idx ON times (task_id);
-CREATE INDEX IF NOT EXISTS times_user_id_idx ON times (user_id);
-CREATE INDEX IF NOT EXISTS times_started_at_idx ON times (started_at);
-CREATE INDEX IF NOT EXISTS times_ended_at_idx ON times (ended_at);
+-- TODO: Add indexes.
 
 COMMIT;
