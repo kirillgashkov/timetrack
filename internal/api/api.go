@@ -159,8 +159,30 @@ func (si *serverInterface) GetUsersPassportNumber(w http.ResponseWriter, r *http
 	response.MustWriteJSON(w, userToAPI(u), http.StatusOK)
 }
 
-func (si *serverInterface) PatchUsersPassportNumber(http.ResponseWriter, *http.Request, string) {
-	panic("not implemented")
+func (si *serverInterface) PatchUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string) {
+	var userUpdate *timetrackapi.UserUpdate
+	if err := request.ReadJSON(r, &userUpdate); err != nil {
+		response.MustWriteError(w, "invalid request", http.StatusUnprocessableEntity)
+		return
+	}
+
+	u, err := si.user.Update(r.Context(), passportNumber, &user.Update{
+		Surname:    userUpdate.Surname,
+		Name:       userUpdate.Name,
+		Patronymic: userUpdate.Patronymic,
+		Address:    userUpdate.Address,
+	})
+	if err != nil {
+		if errors.Is(err, user.ErrNotFound) {
+			response.MustWriteError(w, "user not found", http.StatusNotFound)
+			return
+		}
+		slog.Error("failed to update user", "error", err)
+		response.MustWriteInternalServerError(w)
+		return
+	}
+
+	response.MustWriteJSON(w, userToAPI(u), http.StatusOK)
 }
 
 func userToAPI(u *user.User) *timetrackapi.User {

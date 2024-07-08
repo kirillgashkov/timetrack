@@ -122,14 +122,14 @@ func (s *Service) GetAll(ctx context.Context, filter *Filter, limit, offset int)
 	return users, nil
 }
 
-func (s *Service) Update(ctx context.Context, passportNumber string, update Update) (*User, error) {
+func (s *Service) Update(ctx context.Context, passportNumber string, update *Update) (*User, error) {
 	rows, err := s.db.Query(
 		ctx,
 		`
 			UPDATE users
 			SET surname = COALESCE($2, surname),
 				name = COALESCE($3, name),
-				patronymic = CASE $5 WHEN TRUE THEN $4 ELSE COALESCE($4, patronymic) END,
+				patronymic = CASE WHEN $5 THEN $4 ELSE COALESCE($4, patronymic) END,
 				address = COALESCE($6, address)
 			WHERE passport_number = $1
 			RETURNING passport_number, surname, name, patronymic, address
@@ -138,7 +138,7 @@ func (s *Service) Update(ctx context.Context, passportNumber string, update Upda
 		update.Surname,
 		update.Name,
 		update.Patronymic,
-		update.PatronymicForce,
+		&update.PatronymicForce,
 		update.Address,
 	)
 	if err != nil {
