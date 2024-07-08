@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/kirillgashkov/assignment-timetrack/api/timetrackapi/v1"
@@ -67,28 +68,59 @@ func (si *serverInterface) PostUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (si *serverInterface) GetUsers(w http.ResponseWriter, r *http.Request, params timetrackapi.GetUsersParams) {
-	// TODO implement me
-	panic("implement me")
+	filter := &user.Filter{}
+	for _, f := range *params.Filter {
+		parts := strings.SplitN(f, "=", 2)
+		if len(parts) != 2 {
+			response.MustWriteError(w, "invalid filter", http.StatusUnprocessableEntity)
+			return
+		}
+		k, v := parts[0], parts[1]
+
+		switch k {
+		case "passport_number":
+			filter.PassportNumber = &v
+		case "surname":
+			filter.Surname = &v
+		case "name":
+			filter.Name = &v
+		case "patronymic":
+			filter.Patronymic = &v
+		case "address":
+			filter.Address = &v
+		default:
+			response.MustWriteError(w, "invalid filter", http.StatusUnprocessableEntity)
+		}
+	}
+
+	users, err := si.user.GetAll(r.Context(), filter, *params.Limit, *params.Offset)
+	if err != nil {
+		slog.Error("failed to get users", "error", err)
+		response.MustWriteInternalServerError(w)
+		return
+	}
+
+	apiUsers := make([]*timetrackapi.User, 0, len(users))
+	for _, u := range users {
+		apiUsers = append(apiUsers, userToAPI(&u))
+	}
+	response.MustWriteJSON(w, apiUsers, http.StatusOK)
 }
 
-func (si *serverInterface) GetUsersCurrent(w http.ResponseWriter, r *http.Request) {
-	// TODO implement me
-	panic("implement me")
+func (si *serverInterface) GetUsersCurrent(http.ResponseWriter, *http.Request) {
+	panic("not implemented")
 }
 
-func (si *serverInterface) DeleteUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string) {
-	// TODO implement me
-	panic("implement me")
+func (si *serverInterface) DeleteUsersPassportNumber(http.ResponseWriter, *http.Request, string) {
+	panic("not implemented")
 }
 
-func (si *serverInterface) GetUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string) {
-	// TODO implement me
-	panic("implement me")
+func (si *serverInterface) GetUsersPassportNumber(http.ResponseWriter, *http.Request, string) {
+	panic("not implemented")
 }
 
-func (si *serverInterface) PatchUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string) {
-	// TODO implement me
-	panic("implement me")
+func (si *serverInterface) PatchUsersPassportNumber(http.ResponseWriter, *http.Request, string) {
+	panic("not implemented")
 }
 
 func userToAPI(u *user.User) *timetrackapi.User {

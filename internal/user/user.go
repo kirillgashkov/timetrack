@@ -97,7 +97,7 @@ func (s *Service) Get(ctx context.Context, passportNumber string) (*User, error)
 	return &u, nil
 }
 
-func (s *Service) GetAll(ctx context.Context, filter Filter, limit, offset int) ([]User, error) {
+func (s *Service) GetAll(ctx context.Context, filter *Filter, limit, offset int) ([]User, error) {
 	query, args := buildSelectQuery(filter, limit, offset)
 
 	rows, err := s.db.Query(ctx, query, args...)
@@ -166,13 +166,13 @@ func (s *Service) Delete(ctx context.Context, passportNumber string) (*User, err
 // buildSelectQuery builds a SELECT query with WHERE conditions based on the
 // provided filter. Filters utilize the similarity operator % for string
 // comparison (pg_trgm).
-func buildSelectQuery(filter Filter, limit, offset int) (string, []any) {
+func buildSelectQuery(filter *Filter, limit, offset int) (string, []any) {
 	baseQuery := `
 		SELECT id, passport_number, surname, name, patronymic, address
 		FROM users
 	`
-	whereConditions := []string{}
-	args := []interface{}{}
+	whereConditions := make([]string, 0)
+	args := make([]any, 0)
 	argIndex := 1
 
 	if filter.PassportNumber != nil {
