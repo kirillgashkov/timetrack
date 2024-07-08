@@ -129,8 +129,19 @@ func (si *serverInterface) GetUsersCurrent(http.ResponseWriter, *http.Request) {
 	panic("not implemented")
 }
 
-func (si *serverInterface) DeleteUsersPassportNumber(http.ResponseWriter, *http.Request, string) {
-	panic("not implemented")
+func (si *serverInterface) DeleteUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string) {
+	u, err := si.user.Delete(r.Context(), passportNumber)
+	if err != nil {
+		if errors.Is(err, user.ErrNotFound) {
+			response.MustWriteError(w, "user not found", http.StatusNotFound)
+			return
+		}
+		slog.Error("failed to delete user", "error", err)
+		response.MustWriteInternalServerError(w)
+		return
+	}
+
+	response.MustWriteJSON(w, userToAPI(u), http.StatusOK)
 }
 
 func (si *serverInterface) GetUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string) {
