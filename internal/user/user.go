@@ -46,7 +46,10 @@ func NewService(db *pgxpool.Pool) *Service {
 	return &Service{db: db}
 }
 
-var ErrAlreadyExists = errors.New("user already exists")
+var (
+	ErrAlreadyExists = errors.New("user already exists")
+	ErrNotFound      = errors.New("user not found")
+)
 
 func (s *Service) Create(ctx context.Context, passportNumber string) (*User, error) {
 	rows, err := s.db.Query(
@@ -93,6 +96,9 @@ func (s *Service) Get(ctx context.Context, passportNumber string) (*User, error)
 
 	u, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[User])
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errors.Join(ErrNotFound, err)
+		}
 		return nil, errors.Join(errors.New("failed to collect rows"), err)
 	}
 	return &u, nil
@@ -141,6 +147,9 @@ func (s *Service) Update(ctx context.Context, passportNumber string, update Upda
 
 	u, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[User])
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errors.Join(ErrNotFound, err)
+		}
 		return nil, errors.Join(errors.New("failed to collect rows"), err)
 	}
 	return &u, nil
@@ -162,6 +171,9 @@ func (s *Service) Delete(ctx context.Context, passportNumber string) (*User, err
 
 	u, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[User])
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errors.Join(ErrNotFound, err)
+		}
 		return nil, errors.Join(errors.New("failed to collect rows"), err)
 	}
 	return &u, nil
