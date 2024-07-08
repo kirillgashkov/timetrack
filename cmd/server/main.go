@@ -8,10 +8,11 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/kirillgashkov/timetrack/internal/api"
-	"github.com/kirillgashkov/timetrack/internal/config"
-	"github.com/kirillgashkov/timetrack/internal/database"
-	"github.com/kirillgashkov/timetrack/internal/logging"
+	"github.com/kirillgashkov/timetrack/internal/app/api"
+	"github.com/kirillgashkov/timetrack/internal/app/config"
+	"github.com/kirillgashkov/timetrack/internal/app/database"
+	"github.com/kirillgashkov/timetrack/internal/app/logging"
+
 	"github.com/kirillgashkov/timetrack/internal/user"
 )
 

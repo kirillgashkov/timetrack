@@ -9,13 +9,14 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/kirillgashkov/timetrack/internal/app/config"
+	"github.com/kirillgashkov/timetrack/internal/app/logging"
+
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/kirillgashkov/timetrack/db/timetrack"
-	"github.com/kirillgashkov/timetrack/internal/config"
-	"github.com/kirillgashkov/timetrack/internal/logging"
 )
 
 func main() {

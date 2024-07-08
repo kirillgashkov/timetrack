@@ -8,10 +8,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kirillgashkov/timetrack/internal/app/api/request"
+	"github.com/kirillgashkov/timetrack/internal/app/api/response"
+	"github.com/kirillgashkov/timetrack/internal/app/config"
+
 	"github.com/kirillgashkov/timetrack/api/timetrackapi/v1"
-	"github.com/kirillgashkov/timetrack/internal/api/request"
-	"github.com/kirillgashkov/timetrack/internal/api/response"
-	"github.com/kirillgashkov/timetrack/internal/config"
 	"github.com/kirillgashkov/timetrack/internal/user"
 )
 
