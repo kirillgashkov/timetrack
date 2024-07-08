@@ -13,9 +13,9 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/kirillgashkov/assignment-timetrack/db/timetrackdb"
-	"github.com/kirillgashkov/assignment-timetrack/internal/config"
-	"github.com/kirillgashkov/assignment-timetrack/internal/logging"
+	"github.com/kirillgashkov/timetrack/db/timetrackdb"
+	"github.com/kirillgashkov/timetrack/internal/config"
+	"github.com/kirillgashkov/timetrack/internal/logging"
 )
 
 func main() {
