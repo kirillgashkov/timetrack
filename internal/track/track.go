@@ -4,23 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
-	"time"
-
 	"github.com/jackc/pgx/v5"
 	"github.com/kirillgashkov/timetrack/db/timetrackdb"
+	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/kirillgashkov/timetrack/internal/task"
 )
 
 type Service struct {
 	db *pgxpool.Pool
-}
-
-type ReportTask struct {
-	Task     task.Task
-	Duration time.Duration
 }
 
 var (
@@ -121,8 +113,4 @@ func (s *Service) startStopTask(ctx context.Context, taskID int, userID int, sta
 	}
 
 	return nil
-}
-
-func (s *Service) Report(ctx context.Context, userID int, from, to time.Time) ([]ReportTask, error) {
-	return nil, nil
 }
