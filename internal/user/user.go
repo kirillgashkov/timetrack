@@ -104,7 +104,7 @@ func (s *Service) GetByPassportNumber(ctx context.Context, passportNumber string
 	return &u, nil
 }
 
-func (s *Service) GetAll(ctx context.Context, filter *Filter, limit, offset int) ([]User, error) {
+func (s *Service) List(ctx context.Context, filter *Filter, offset, limit int) ([]User, error) {
 	query, args := buildSelectQuery(filter, limit, offset)
 
 	slog.Debug("executing query", "query", query, "args", args)

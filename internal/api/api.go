@@ -94,14 +94,6 @@ func (si *serverInterface) GetUsers(w http.ResponseWriter, r *http.Request, para
 			}
 		}
 	}
-	limit := 50
-	if params.Limit != nil {
-		if *params.Limit < 1 || *params.Limit > 100 {
-			response.MustWriteError(w, "invalid limit", http.StatusUnprocessableEntity)
-			return
-		}
-		limit = *params.Limit
-	}
 	offset := 0
 	if params.Offset != nil {
 		if *params.Offset < 0 {
@@ -110,8 +102,16 @@ func (si *serverInterface) GetUsers(w http.ResponseWriter, r *http.Request, para
 		}
 		offset = *params.Offset
 	}
+	limit := 50
+	if params.Limit != nil {
+		if *params.Limit < 1 || *params.Limit > 100 {
+			response.MustWriteError(w, "invalid limit", http.StatusUnprocessableEntity)
+			return
+		}
+		limit = *params.Limit
+	}
 
-	users, err := si.user.GetAll(r.Context(), filter, limit, offset)
+	users, err := si.user.List(r.Context(), filter, offset, limit)
 	if err != nil {
 		slog.Error("failed to get users", "error", err)
 		response.MustWriteInternalServerError(w)
