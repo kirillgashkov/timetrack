@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/kirillgashkov/timetrack/db/timetrackdb/migrations"
 	"io"
 	"log/slog"
 	"os"
@@ -14,6 +13,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/kirillgashkov/timetrack/db/timetrackdb/migrations"
 	"github.com/kirillgashkov/timetrack/internal/config"
 	"github.com/kirillgashkov/timetrack/internal/logging"
 )
