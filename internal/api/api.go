@@ -63,16 +63,40 @@ func (si *serverInterface) PostUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uOut := &timetrackapi.User{
+	response.MustWriteJSON(w, userToAPI(u), http.StatusOK)
+}
+
+func (si *serverInterface) GetUsers(w http.ResponseWriter, r *http.Request, params timetrackapi.GetUsersParams) {
+	// TODO implement me
+	panic("implement me")
+}
+
+func (si *serverInterface) GetUsersCurrent(w http.ResponseWriter, r *http.Request) {
+	// TODO implement me
+	panic("implement me")
+}
+
+func (si *serverInterface) DeleteUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string) {
+	// TODO implement me
+	panic("implement me")
+}
+
+func (si *serverInterface) GetUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string) {
+	// TODO implement me
+	panic("implement me")
+}
+
+func (si *serverInterface) PatchUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string) {
+	// TODO implement me
+	panic("implement me")
+}
+
+func userToAPI(u *user.User) *timetrackapi.User {
+	return &timetrackapi.User{
 		PassportNumber: u.PassportNumber,
 		Surname:        u.Surname,
 		Name:           u.Name,
 		Patronymic:     u.Patronymic,
 		Address:        u.Address,
 	}
-	response.MustWriteJSON(w, uOut, http.StatusOK)
-}
-
-func (si *serverInterface) GetUsersCurrent(http.ResponseWriter, *http.Request) {
-	panic("implement me")
 }
