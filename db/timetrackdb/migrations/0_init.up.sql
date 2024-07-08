@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS tasks_users (
 );
 -- TODO: Add indexes.
 
-CREATE TABLE IF NOT EXISTS events (
+CREATE TABLE IF NOT EXISTS tracks (
     id serial NOT NULL,
     type text NOT NULL,
     timestamp timestamp with time zone NOT NULL,
