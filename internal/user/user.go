@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"strconv"
 	"strings"
 
@@ -100,6 +101,7 @@ func (s *Service) Get(ctx context.Context, passportNumber string) (*User, error)
 func (s *Service) GetAll(ctx context.Context, filter *Filter, limit, offset int) ([]User, error) {
 	query, args := buildSelectQuery(filter, limit, offset)
 
+	slog.Debug("executing query", "query", query, "args", args)
 	rows, err := s.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to select users"), err)
@@ -109,6 +111,8 @@ func (s *Service) GetAll(ctx context.Context, filter *Filter, limit, offset int)
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to collect rows"), err)
 	}
+	slog.Debug("collected rows", "rows", len(users))
+
 	return users, nil
 }
 
