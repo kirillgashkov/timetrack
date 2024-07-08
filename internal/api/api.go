@@ -5,20 +5,22 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
-	"github.com/jackc/pgerrcode"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kirillgashkov/assignment-timetrack/api/timetrackapi/v1"
 	"github.com/kirillgashkov/assignment-timetrack/internal/api/request"
 	"github.com/kirillgashkov/assignment-timetrack/internal/api/response"
 	"github.com/kirillgashkov/assignment-timetrack/internal/config"
+	"github.com/kirillgashkov/assignment-timetrack/internal/user"
 )
 
-func NewServer(cfg *config.ServerConfig, db *pgxpool.Pool) (*http.Server, error) {
-	h, err := newHandler(db)
+type serverInterface struct {
+	user *user.Service
+}
+
+func NewServer(cfg *config.ServerConfig, user *user.Service) (*http.Server, error) {
+	h, err := newHandler(user)
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to create handler"), err)
 	}
@@ -30,14 +32,10 @@ func NewServer(cfg *config.ServerConfig, db *pgxpool.Pool) (*http.Server, error)
 	}, nil
 }
 
-func newHandler(db *pgxpool.Pool) (http.Handler, error) {
-	si := &serverInterface{db: db}
+func newHandler(user *user.Service) (http.Handler, error) {
+	si := &serverInterface{user: user}
 	mux := http.NewServeMux()
 	return timetrackapi.HandlerFromMux(si, mux), nil
-}
-
-type serverInterface struct {
-	db *pgxpool.Pool
 }
 
 func (si *serverInterface) GetHealth(w http.ResponseWriter, _ *http.Request) {
@@ -55,57 +53,144 @@ func (si *serverInterface) PostUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type userDB struct {
-		ID             int
-		PassportNumber string `db:"passport_number"`
-		Surname        string
-		Name           string
-		Patronymic     *string
-		Address        string
-	}
-
-	rows, err := si.db.Query(
-		r.Context(),
-		`
-			INSERT INTO users (passport_number, surname, name, patronymic, address)
-			VALUES ($1, $2, $3, $4, $5)
-			RETURNING id, passport_number, surname, name, patronymic, address
-		`,
-		userCreate.PassportNumber,
-		"some surname",
-		"some name",
-		"some patronymic",
-		"some address",
-	)
+	u, err := si.user.Create(r.Context(), userCreate.PassportNumber)
 	if err != nil {
-		slog.Error("failed to query insert user", "error", err)
-		response.MustWriteInternalServerError(w)
-		return
-	}
-
-	uDB, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[userDB])
-	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
-			response.MustWriteError(w, "user with this passport number already exists", http.StatusBadRequest)
+		if errors.Is(err, user.ErrAlreadyExists) {
+			response.MustWriteError(w, "user already exists", http.StatusBadRequest)
 			return
 		}
-		slog.Error("failed to collect rows from insert user", "error", err)
+		slog.Error("failed to create user", "error", err)
 		response.MustWriteInternalServerError(w)
 		return
 	}
 
-	u := timetrackapi.User{
-		Id:             uDB.ID,
-		PassportNumber: uDB.PassportNumber,
-		Surname:        uDB.Surname,
-		Name:           uDB.Name,
-		Patronymic:     uDB.Patronymic,
-		Address:        uDB.Address,
-	}
-	response.MustWriteJSON(w, u, http.StatusOK)
+	response.MustWriteJSON(w, userToAPI(u), http.StatusOK)
 }
 
-func (si *serverInterface) GetUsersCurrent(w http.ResponseWriter, r *http.Request) {
-	panic("implement me")
+func (si *serverInterface) GetUsers(w http.ResponseWriter, r *http.Request, params timetrackapi.GetUsersParams) {
+	filter := &user.Filter{}
+	if params.Filter != nil {
+		for _, f := range *params.Filter {
+			parts := strings.SplitN(f, "=", 2)
+			if len(parts) != 2 {
+				response.MustWriteError(w, "invalid filter", http.StatusUnprocessableEntity)
+				return
+			}
+			k, v := parts[0], parts[1]
+
+			switch k {
+			case "passport_number":
+				filter.PassportNumber = &v
+			case "surname":
+				filter.Surname = &v
+			case "name":
+				filter.Name = &v
+			case "patronymic":
+				filter.Patronymic = &v
+			case "address":
+				filter.Address = &v
+			default:
+				response.MustWriteError(w, "invalid filter", http.StatusUnprocessableEntity)
+			}
+		}
+	}
+	limit := 50
+	if params.Limit != nil {
+		if *params.Limit < 1 || *params.Limit > 100 {
+			response.MustWriteError(w, "invalid limit", http.StatusUnprocessableEntity)
+			return
+		}
+		limit = *params.Limit
+	}
+	offset := 0
+	if params.Offset != nil {
+		if *params.Offset < 0 {
+			response.MustWriteError(w, "invalid offset", http.StatusUnprocessableEntity)
+			return
+		}
+		offset = *params.Offset
+	}
+
+	users, err := si.user.GetAll(r.Context(), filter, limit, offset)
+	if err != nil {
+		slog.Error("failed to get users", "error", err)
+		response.MustWriteInternalServerError(w)
+		return
+	}
+
+	apiUsers := make([]*timetrackapi.User, 0, len(users))
+	for _, u := range users {
+		apiUsers = append(apiUsers, userToAPI(&u))
+	}
+	response.MustWriteJSON(w, apiUsers, http.StatusOK)
+}
+
+func (si *serverInterface) GetUsersCurrent(http.ResponseWriter, *http.Request) {
+	panic("not implemented")
+}
+
+func (si *serverInterface) PatchUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string) {
+	var userUpdate *timetrackapi.UserUpdate
+	if err := request.ReadJSON(r, &userUpdate); err != nil {
+		response.MustWriteError(w, "invalid request", http.StatusUnprocessableEntity)
+		return
+	}
+
+	u, err := si.user.Update(r.Context(), passportNumber, &user.Update{
+		Surname:    userUpdate.Surname,
+		Name:       userUpdate.Name,
+		Patronymic: userUpdate.Patronymic,
+		Address:    userUpdate.Address,
+	})
+	if err != nil {
+		if errors.Is(err, user.ErrNotFound) {
+			response.MustWriteError(w, "user not found", http.StatusNotFound)
+			return
+		}
+		slog.Error("failed to update user", "error", err)
+		response.MustWriteInternalServerError(w)
+		return
+	}
+
+	response.MustWriteJSON(w, userToAPI(u), http.StatusOK)
+}
+
+func (si *serverInterface) DeleteUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string) {
+	u, err := si.user.Delete(r.Context(), passportNumber)
+	if err != nil {
+		if errors.Is(err, user.ErrNotFound) {
+			response.MustWriteError(w, "user not found", http.StatusNotFound)
+			return
+		}
+		slog.Error("failed to delete user", "error", err)
+		response.MustWriteInternalServerError(w)
+		return
+	}
+
+	response.MustWriteJSON(w, userToAPI(u), http.StatusOK)
+}
+
+func (si *serverInterface) GetUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string) {
+	u, err := si.user.Get(r.Context(), passportNumber)
+	if err != nil {
+		if errors.Is(err, user.ErrNotFound) {
+			response.MustWriteError(w, "user not found", http.StatusNotFound)
+			return
+		}
+		slog.Error("failed to get user", "error", err)
+		response.MustWriteInternalServerError(w)
+		return
+	}
+
+	response.MustWriteJSON(w, userToAPI(u), http.StatusOK)
+}
+
+func userToAPI(u *user.User) *timetrackapi.User {
+	return &timetrackapi.User{
+		PassportNumber: u.PassportNumber,
+		Surname:        u.Surname,
+		Name:           u.Name,
+		Patronymic:     u.Patronymic,
+		Address:        u.Address,
+	}
 }

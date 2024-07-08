@@ -8,12 +8,11 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/kirillgashkov/assignment-timetrack/internal/database"
-
 	"github.com/kirillgashkov/assignment-timetrack/internal/api"
-
 	"github.com/kirillgashkov/assignment-timetrack/internal/config"
+	"github.com/kirillgashkov/assignment-timetrack/internal/database"
 	"github.com/kirillgashkov/assignment-timetrack/internal/logging"
+	"github.com/kirillgashkov/assignment-timetrack/internal/user"
 )
 
 func main() {
@@ -41,7 +40,9 @@ func mainErr() error {
 	}
 	defer db.Close()
 
-	srv, err := api.NewServer(&cfg.Server, db)
+	userService := user.NewService(db)
+
+	srv, err := api.NewServer(&cfg.Server, userService)
 	if err != nil {
 		return errors.Join(errors.New("failed to create server"), err)
 	}
