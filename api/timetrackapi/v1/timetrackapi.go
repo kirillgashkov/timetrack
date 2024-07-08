@@ -30,6 +30,7 @@ type Health struct {
 // User defines model for User.
 type User struct {
 	Address        string  `json:"address"`
+	Id             int     `json:"id"`
 	Name           string  `json:"name"`
 	PassportNumber string  `json:"passportNumber"`
 	Patronymic     *string `json:"patronymic,omitempty"`

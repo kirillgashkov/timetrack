@@ -254,8 +254,10 @@ components:
 
     User:
       type: object
-      required: [passportNumber, surname, name, address]
+      required: [id, passportNumber, surname, name, address]
       properties:
+        id:
+          type: integer
         passportNumber:
           type: string
         surname:
