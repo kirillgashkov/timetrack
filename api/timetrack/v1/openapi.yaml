@@ -86,8 +86,6 @@ components:
       type: object
       required: [id, passportNumber, surname, name, address]
       properties:
-        id:
-          type: integer
         passportNumber:
           type: string
         surname:
