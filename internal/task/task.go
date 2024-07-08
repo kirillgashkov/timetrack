@@ -23,10 +23,6 @@ type Create struct {
 	Description string
 }
 
-type Filter struct {
-	Description *string
-}
-
 type Update struct {
 	Description *string
 }
@@ -81,6 +77,25 @@ func (s *Service) Get(ctx context.Context, id int) (*Task, error) {
 		return nil, errors.Join(errors.New("failed to collect task"), err)
 	}
 	return &task, nil
+}
+
+func (s *Service) List(ctx context.Context, offset, limit int) ([]Task, error) {
+	rows, err := s.db.Query(
+		ctx,
+		`SELECT id, description FROM tasks ORDER BY id OFFSET $1 LIMIT $2`,
+		offset,
+		limit,
+	)
+	if err != nil {
+		return nil, errors.Join(errors.New("failed to select tasks"), err)
+	}
+	defer rows.Close()
+
+	tasks, err := pgx.CollectRows(rows, pgx.RowToStructByName[Task])
+	if err != nil {
+		return nil, errors.Join(errors.New("failed to collect tasks"), err)
+	}
+	return tasks, nil
 }
 
 func (s *Service) Update(ctx context.Context, id int, update *Update) (*Task, error) {
