@@ -41,6 +41,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "422":
+          description: Unprocessable entity.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /users/current:
     get:
