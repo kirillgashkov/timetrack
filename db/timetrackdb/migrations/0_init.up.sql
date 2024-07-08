@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS tasks_users (
 CREATE TABLE IF NOT EXISTS tracks (
     id serial NOT NULL,
     type text NOT NULL,
-    timestamp timestamp with time zone NOT NULL,
+    timestamp timestamp with time zone NOT NULL DEFAULT now(),
     task_id integer NOT NULL,
     user_id integer NOT NULL,
     PRIMARY KEY (id),
