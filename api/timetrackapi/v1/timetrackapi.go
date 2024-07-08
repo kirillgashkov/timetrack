@@ -44,9 +44,9 @@ type UserCreate struct {
 // GetUsersParams defines parameters for GetUsers.
 type GetUsersParams struct {
 	// Filter Filter by user fields. Can be used multiple times.
-	Filter *string `form:"filter,omitempty" json:"filter,omitempty"`
-	Limit  *int    `form:"limit,omitempty" json:"limit,omitempty"`
-	Offset *int    `form:"offset,omitempty" json:"offset,omitempty"`
+	Filter *[]string `form:"filter,omitempty" json:"filter,omitempty"`
+	Limit  *int      `form:"limit,omitempty" json:"limit,omitempty"`
+	Offset *int      `form:"offset,omitempty" json:"offset,omitempty"`
 }
 
 // PostUsersJSONRequestBody defines body for PostUsers for application/json ContentType.
