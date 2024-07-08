@@ -133,8 +133,19 @@ func (si *serverInterface) DeleteUsersPassportNumber(http.ResponseWriter, *http.
 	panic("not implemented")
 }
 
-func (si *serverInterface) GetUsersPassportNumber(http.ResponseWriter, *http.Request, string) {
-	panic("not implemented")
+func (si *serverInterface) GetUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string) {
+	u, err := si.user.Get(r.Context(), passportNumber)
+	if err != nil {
+		if errors.Is(err, user.ErrNotFound) {
+			response.MustWriteError(w, "user not found", http.StatusNotFound)
+			return
+		}
+		slog.Error("failed to get user", "error", err)
+		response.MustWriteInternalServerError(w)
+		return
+	}
+
+	response.MustWriteJSON(w, userToAPI(u), http.StatusOK)
 }
 
 func (si *serverInterface) PatchUsersPassportNumber(http.ResponseWriter, *http.Request, string) {
