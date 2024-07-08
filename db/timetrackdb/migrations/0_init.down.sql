@@ -1,7 +1,12 @@
 BEGIN;
 
+DROP INDEX IF EXISTS times_ended_at_idx;
+DROP INDEX IF EXISTS times_started_at_idx;
+DROP INDEX IF EXISTS times_user_id_idx;
+DROP INDEX IF EXISTS times_task_id_idx;
 DROP TABLE IF EXISTS times;
 
+DROP INDEX IF EXISTS tasks_description_trgm_idx;
 DROP TABLE IF EXISTS tasks;
 
 DROP INDEX IF EXISTS users_address_trgm_idx;
