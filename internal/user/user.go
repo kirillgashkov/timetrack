@@ -168,7 +168,7 @@ func (s *Service) Delete(ctx context.Context, passportNumber string) (*User, err
 // comparison (pg_trgm).
 func buildSelectQuery(filter *Filter, limit, offset int) (string, []any) {
 	baseQuery := `
-		SELECT id, passport_number, surname, name, patronymic, address
+		SELECT passport_number, surname, name, patronymic, address
 		FROM users
 	`
 	whereConditions := make([]string, 0)
