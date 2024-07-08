@@ -149,7 +149,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/User"
+              $ref: "#/components/schemas/UserUpdate"
       responses:
         "200":
           description: OK.
@@ -273,3 +273,15 @@ components:
       properties:
         passportNumber:
           type: string
+
+    UserUpdate:
+        type: object
+        properties:
+          surname:
+            type: string
+          name:
+            type: string
+          patronymic:
+            type: string
+          address:
+            type: string

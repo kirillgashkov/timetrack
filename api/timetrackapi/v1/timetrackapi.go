@@ -41,6 +41,14 @@ type UserCreate struct {
 	PassportNumber string `json:"passportNumber"`
 }
 
+// UserUpdate defines model for UserUpdate.
+type UserUpdate struct {
+	Address    *string `json:"address,omitempty"`
+	Name       *string `json:"name,omitempty"`
+	Patronymic *string `json:"patronymic,omitempty"`
+	Surname    *string `json:"surname,omitempty"`
+}
+
 // GetUsersParams defines parameters for GetUsers.
 type GetUsersParams struct {
 	// Filter Filter by user fields. Can be used multiple times.
@@ -53,7 +61,7 @@ type GetUsersParams struct {
 type PostUsersJSONRequestBody = UserCreate
 
 // PatchUsersPassportNumberJSONRequestBody defines body for PatchUsersPassportNumber for application/json ContentType.
-type PatchUsersPassportNumberJSONRequestBody = User
+type PatchUsersPassportNumberJSONRequestBody = UserUpdate
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
