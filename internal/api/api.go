@@ -136,7 +136,7 @@ func (si *serverInterface) PatchUsersPassportNumber(w http.ResponseWriter, r *ht
 		return
 	}
 
-	u, err := si.user.Update(r.Context(), passportNumber, &user.Update{
+	u, err := si.user.UpdateByPassportNumber(r.Context(), passportNumber, &user.Update{
 		Surname:    userUpdate.Surname,
 		Name:       userUpdate.Name,
 		Patronymic: userUpdate.Patronymic,
@@ -156,7 +156,7 @@ func (si *serverInterface) PatchUsersPassportNumber(w http.ResponseWriter, r *ht
 }
 
 func (si *serverInterface) DeleteUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string) {
-	u, err := si.user.Delete(r.Context(), passportNumber)
+	u, err := si.user.DeleteByPassportNumber(r.Context(), passportNumber)
 	if err != nil {
 		if errors.Is(err, user.ErrNotFound) {
 			response.MustWriteError(w, "user not found", http.StatusNotFound)
@@ -171,7 +171,7 @@ func (si *serverInterface) DeleteUsersPassportNumber(w http.ResponseWriter, r *h
 }
 
 func (si *serverInterface) GetUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string) {
-	u, err := si.user.Get(r.Context(), passportNumber)
+	u, err := si.user.GetByPassportNumber(r.Context(), passportNumber)
 	if err != nil {
 		if errors.Is(err, user.ErrNotFound) {
 			response.MustWriteError(w, "user not found", http.StatusNotFound)

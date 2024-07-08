@@ -80,7 +80,7 @@ func (s *Service) Create(ctx context.Context, passportNumber string) (*User, err
 	return &u, nil
 }
 
-func (s *Service) Get(ctx context.Context, passportNumber string) (*User, error) {
+func (s *Service) GetByPassportNumber(ctx context.Context, passportNumber string) (*User, error) {
 	rows, err := s.db.Query(
 		ctx,
 		`
@@ -122,7 +122,7 @@ func (s *Service) GetAll(ctx context.Context, filter *Filter, limit, offset int)
 	return users, nil
 }
 
-func (s *Service) Update(ctx context.Context, passportNumber string, update *Update) (*User, error) {
+func (s *Service) UpdateByPassportNumber(ctx context.Context, passportNumber string, update *Update) (*User, error) {
 	rows, err := s.db.Query(
 		ctx,
 		`
@@ -155,7 +155,7 @@ func (s *Service) Update(ctx context.Context, passportNumber string, update *Upd
 	return &u, nil
 }
 
-func (s *Service) Delete(ctx context.Context, passportNumber string) (*User, error) {
+func (s *Service) DeleteByPassportNumber(ctx context.Context, passportNumber string) (*User, error) {
 	rows, err := s.db.Query(
 		ctx,
 		`
