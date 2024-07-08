@@ -69,31 +69,49 @@ func (si *serverInterface) PostUsers(w http.ResponseWriter, r *http.Request) {
 
 func (si *serverInterface) GetUsers(w http.ResponseWriter, r *http.Request, params timetrackapi.GetUsersParams) {
 	filter := &user.Filter{}
-	for _, f := range *params.Filter {
-		parts := strings.SplitN(f, "=", 2)
-		if len(parts) != 2 {
-			response.MustWriteError(w, "invalid filter", http.StatusUnprocessableEntity)
-			return
-		}
-		k, v := parts[0], parts[1]
+	if params.Filter != nil {
+		for _, f := range *params.Filter {
+			parts := strings.SplitN(f, "=", 2)
+			if len(parts) != 2 {
+				response.MustWriteError(w, "invalid filter", http.StatusUnprocessableEntity)
+				return
+			}
+			k, v := parts[0], parts[1]
 
-		switch k {
-		case "passport_number":
-			filter.PassportNumber = &v
-		case "surname":
-			filter.Surname = &v
-		case "name":
-			filter.Name = &v
-		case "patronymic":
-			filter.Patronymic = &v
-		case "address":
-			filter.Address = &v
-		default:
-			response.MustWriteError(w, "invalid filter", http.StatusUnprocessableEntity)
+			switch k {
+			case "passport_number":
+				filter.PassportNumber = &v
+			case "surname":
+				filter.Surname = &v
+			case "name":
+				filter.Name = &v
+			case "patronymic":
+				filter.Patronymic = &v
+			case "address":
+				filter.Address = &v
+			default:
+				response.MustWriteError(w, "invalid filter", http.StatusUnprocessableEntity)
+			}
 		}
 	}
+	limit := 50
+	if params.Limit != nil {
+		if *params.Limit < 1 || *params.Limit > 100 {
+			response.MustWriteError(w, "invalid limit", http.StatusUnprocessableEntity)
+			return
+		}
+		limit = *params.Limit
+	}
+	offset := 0
+	if params.Offset != nil {
+		if *params.Offset < 0 {
+			response.MustWriteError(w, "invalid offset", http.StatusUnprocessableEntity)
+			return
+		}
+		offset = *params.Offset
+	}
 
-	users, err := si.user.GetAll(r.Context(), filter, *params.Limit, *params.Offset)
+	users, err := si.user.GetAll(r.Context(), filter, limit, offset)
 	if err != nil {
 		slog.Error("failed to get users", "error", err)
 		response.MustWriteInternalServerError(w)
