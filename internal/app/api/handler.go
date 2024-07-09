@@ -18,6 +18,13 @@ type Handler struct {
 	*userHandler
 }
 
+func NewHandler(taskService *task.Service, userService *user.Service) *Handler {
+	return &Handler{
+		taskHandler: &taskHandler{Service: taskService},
+		userHandler: &userHandler{Service: userService},
+	}
+}
+
 func (h *Handler) GetHealth(w http.ResponseWriter, _ *http.Request) {
 	apiutil.MustWriteJSON(w, timetrackapi.Health{Status: "ok"}, http.StatusOK)
 }

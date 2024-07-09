@@ -65,6 +65,8 @@ func (h *Handler) GetTasks(w http.ResponseWriter, r *http.Request, params timetr
 }
 
 // GetTasksId handles "GET /tasks/{id}".
+//
+//nolint:revive
 func (h *Handler) GetTasksId(w http.ResponseWriter, r *http.Request, id int) {
 	t, err := h.Service.Get(r.Context(), id)
 	if err != nil {
@@ -81,6 +83,8 @@ func (h *Handler) GetTasksId(w http.ResponseWriter, r *http.Request, id int) {
 }
 
 // PatchTasksId handles "PATCH /tasks/{id}".
+//
+//nolint:revive
 func (h *Handler) PatchTasksId(w http.ResponseWriter, r *http.Request, id int) {
 	var taskUpdateAPI *timetrackapi.TaskUpdate
 	if err := apiutil.ReadJSON(r, &taskUpdateAPI); err != nil {
@@ -105,6 +109,8 @@ func (h *Handler) PatchTasksId(w http.ResponseWriter, r *http.Request, id int) {
 }
 
 // DeleteTasksId handles "DELETE /tasks/{id}".
+//
+//nolint:revive
 func (h *Handler) DeleteTasksId(w http.ResponseWriter, r *http.Request, id int) {
 	t, err := h.Service.Delete(r.Context(), id)
 	if err != nil {
