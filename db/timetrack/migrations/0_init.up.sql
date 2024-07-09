@@ -32,8 +32,8 @@ CREATE TABLE IF NOT EXISTS works (
     user_id integer NOT NULL,
     status text NOT NULL,
     PRIMARY KEY (id),
-    FOREIGN KEY (task_id) REFERENCES tasks (id),
-    FOREIGN KEY (user_id) REFERENCES users (id),
+    FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
     CHECK (
         status = 'started' AND stopped_at IS NULL
         OR status = 'stopped' AND stopped_at IS NOT NULL
