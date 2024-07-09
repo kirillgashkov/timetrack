@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/kirillgashkov/timetrack/internal/tracking"
+
 	"github.com/kirillgashkov/timetrack/internal/task"
 
 	"github.com/kirillgashkov/timetrack/api/timetrackapi/v1"
@@ -15,9 +17,10 @@ import (
 func NewServer(
 	cfg *config.ServerConfig,
 	taskService *task.Service,
+	trackingService *tracking.Service,
 	userService *user.Service,
 ) (*http.Server, error) {
-	si := NewHandler(taskService, userService)
+	si := NewHandler(taskService, trackingService, userService)
 	mux := http.NewServeMux()
 	h := timetrackapi.HandlerFromMux(si, mux)
 

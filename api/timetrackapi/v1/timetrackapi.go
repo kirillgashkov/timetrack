@@ -113,6 +113,12 @@ type ServerInterface interface {
 	// (PATCH /tasks/{id})
 	PatchTasksId(w http.ResponseWriter, r *http.Request, id int)
 
+	// (POST /tasks/{id}/start)
+	PostTasksIdStart(w http.ResponseWriter, r *http.Request, id int)
+
+	// (POST /tasks/{id}/stop)
+	PostTasksIdStop(w http.ResponseWriter, r *http.Request, id int)
+
 	// (GET /users/)
 	GetUsers(w http.ResponseWriter, r *http.Request, params GetUsersParams)
 
@@ -284,6 +290,62 @@ func (siw *ServerInterfaceWrapper) PatchTasksId(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PatchTasksId(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// PostTasksIdStart operation middleware
+func (siw *ServerInterfaceWrapper) PostTasksIdStart(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostTasksIdStart(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// PostTasksIdStop operation middleware
+func (siw *ServerInterfaceWrapper) PostTasksIdStop(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostTasksIdStop(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -575,6 +637,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("DELETE "+options.BaseURL+"/tasks/{id}", wrapper.DeleteTasksId)
 	m.HandleFunc("GET "+options.BaseURL+"/tasks/{id}", wrapper.GetTasksId)
 	m.HandleFunc("PATCH "+options.BaseURL+"/tasks/{id}", wrapper.PatchTasksId)
+	m.HandleFunc("POST "+options.BaseURL+"/tasks/{id}/start", wrapper.PostTasksIdStart)
+	m.HandleFunc("POST "+options.BaseURL+"/tasks/{id}/stop", wrapper.PostTasksIdStop)
 	m.HandleFunc("GET "+options.BaseURL+"/users/", wrapper.GetUsers)
 	m.HandleFunc("POST "+options.BaseURL+"/users/", wrapper.PostUsers)
 	m.HandleFunc("GET "+options.BaseURL+"/users/current", wrapper.GetUsersCurrent)

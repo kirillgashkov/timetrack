@@ -3,6 +3,8 @@ package api
 import (
 	"net/http"
 
+	"github.com/kirillgashkov/timetrack/internal/tracking"
+
 	"github.com/kirillgashkov/timetrack/internal/app/api/apiutil"
 
 	"github.com/kirillgashkov/timetrack/api/timetrackapi/v1"
@@ -11,17 +13,24 @@ import (
 )
 
 type taskHandler = task.Handler
+type trackingHandler = tracking.Handler
 type userHandler = user.Handler
 
 type Handler struct {
 	*taskHandler
+	*trackingHandler
 	*userHandler
 }
 
-func NewHandler(taskService *task.Service, userService *user.Service) *Handler {
+func NewHandler(
+	taskService *task.Service,
+	trackingService *tracking.Service,
+	userService *user.Service,
+) *Handler {
 	return &Handler{
-		taskHandler: &taskHandler{Service: taskService},
-		userHandler: &userHandler{Service: userService},
+		taskHandler:     &taskHandler{Service: taskService},
+		trackingHandler: &trackingHandler{Service: trackingService},
+		userHandler:     &userHandler{Service: userService},
 	}
 }
 

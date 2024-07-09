@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/kirillgashkov/timetrack/internal/tracking"
+
 	"github.com/kirillgashkov/timetrack/internal/task"
 
 	"github.com/kirillgashkov/timetrack/internal/app/api"
@@ -44,9 +46,10 @@ func mainErr() error {
 	defer db.Close()
 
 	taskService := task.NewService(db)
+	trackingService := tracking.NewService(db)
 	userService := user.NewService(db)
 
-	srv, err := api.NewServer(&cfg.Server, taskService, userService)
+	srv, err := api.NewServer(&cfg.Server, taskService, trackingService, userService)
 	if err != nil {
 		return errors.Join(errors.New("failed to create server"), err)
 	}
