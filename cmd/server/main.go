@@ -37,7 +37,7 @@ func mainErr() error {
 	logger := logging.NewLogger(cfg)
 	slog.SetDefault(logger)
 
-	db, err := database.NewPool(ctx, &cfg.Database)
+	db, err := database.NewPool(ctx, cfg)
 	if err != nil {
 		return errors.Join(errors.New("failed to create database pool"), err)
 	}

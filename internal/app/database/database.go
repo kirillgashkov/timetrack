@@ -10,12 +10,19 @@ import (
 	"github.com/kirillgashkov/timetrack/internal/app/config"
 )
 
-func NewPool(ctx context.Context, cfg *config.DatabaseConfig) (*pgxpool.Pool, error) {
-	pgxCfg, err := pgxpool.ParseConfig(cfg.DSN)
+func NewPool(ctx context.Context, cfg *config.Config) (*pgxpool.Pool, error) {
+	pgxCfg, err := pgxpool.ParseConfig(cfg.Database.DSN)
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to parse database config"), err)
 	}
-	pgxCfg.ConnConfig.Tracer = newTracer()
+
+	switch cfg.Mode {
+	case config.ModeDevelopment:
+		pgxCfg.ConnConfig.Tracer = newTracer()
+	case config.ModeProduction:
+	default:
+		panic("invalid mode")
+	}
 
 	db, err := pgxpool.NewWithConfig(ctx, pgxCfg)
 	if err != nil {
