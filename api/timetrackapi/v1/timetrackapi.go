@@ -28,6 +28,12 @@ type Health struct {
 	Status string `json:"status"`
 }
 
+// ReportDuration defines model for ReportDuration.
+type ReportDuration struct {
+	Hours   int `json:"hours"`
+	Minutes int `json:"minutes"`
+}
+
 // ReportIn defines model for ReportIn.
 type ReportIn struct {
 	From time.Time `json:"from"`
@@ -36,8 +42,8 @@ type ReportIn struct {
 
 // ReportTask defines model for ReportTask.
 type ReportTask struct {
-	Duration *string `json:"duration,omitempty"`
-	Task     *Task   `json:"task,omitempty"`
+	Duration *ReportDuration `json:"duration,omitempty"`
+	Task     *Task           `json:"task,omitempty"`
 }
 
 // Task defines model for Task.

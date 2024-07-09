@@ -604,6 +604,15 @@ components:
           type: string
           format: date-time
 
+    ReportDuration:
+      type: object
+      required: [hours, minutes]
+      properties:
+        hours:
+          type: integer
+        minutes:
+          type: integer
+
     ReportTask:
       type: object
       required: [id, description, start, stop]
@@ -611,4 +620,4 @@ components:
         task:
           $ref: "#/components/schemas/Task"
         duration:
-          type: string
+          $ref: "#/components/schemas/ReportDuration"
