@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/oapi-codegen/runtime"
 )
@@ -27,9 +28,44 @@ type Health struct {
 	Status string `json:"status"`
 }
 
+// ReportDuration defines model for ReportDuration.
+type ReportDuration struct {
+	Hours   int `json:"hours"`
+	Minutes int `json:"minutes"`
+}
+
+// ReportIn defines model for ReportIn.
+type ReportIn struct {
+	From time.Time `json:"from"`
+	To   time.Time `json:"to"`
+}
+
+// ReportTask defines model for ReportTask.
+type ReportTask struct {
+	Duration *ReportDuration `json:"duration,omitempty"`
+	Task     *Task           `json:"task,omitempty"`
+}
+
+// Task defines model for Task.
+type Task struct {
+	Description string `json:"description"`
+	Id          int    `json:"id"`
+}
+
+// TaskCreate defines model for TaskCreate.
+type TaskCreate struct {
+	Description string `json:"description"`
+}
+
+// TaskUpdate defines model for TaskUpdate.
+type TaskUpdate struct {
+	Description *string `json:"description,omitempty"`
+}
+
 // User defines model for User.
 type User struct {
 	Address        string  `json:"address"`
+	Id             int     `json:"id"`
 	Name           string  `json:"name"`
 	PassportNumber string  `json:"passportNumber"`
 	Patronymic     *string `json:"patronymic,omitempty"`
@@ -49,16 +85,31 @@ type UserUpdate struct {
 	Surname    *string `json:"surname,omitempty"`
 }
 
+// GetTasksParams defines parameters for GetTasks.
+type GetTasksParams struct {
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+	Limit  *int `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
 // GetUsersParams defines parameters for GetUsers.
 type GetUsersParams struct {
 	// Filter Filter by user fields. Can be used multiple times.
 	Filter *[]string `form:"filter,omitempty" json:"filter,omitempty"`
-	Limit  *int      `form:"limit,omitempty" json:"limit,omitempty"`
 	Offset *int      `form:"offset,omitempty" json:"offset,omitempty"`
+	Limit  *int      `form:"limit,omitempty" json:"limit,omitempty"`
 }
+
+// PostTasksJSONRequestBody defines body for PostTasks for application/json ContentType.
+type PostTasksJSONRequestBody = TaskCreate
+
+// PatchTasksIdJSONRequestBody defines body for PatchTasksId for application/json ContentType.
+type PatchTasksIdJSONRequestBody = TaskUpdate
 
 // PostUsersJSONRequestBody defines body for PostUsers for application/json ContentType.
 type PostUsersJSONRequestBody = UserCreate
+
+// PostUsersIdReportJSONRequestBody defines body for PostUsersIdReport for application/json ContentType.
+type PostUsersIdReportJSONRequestBody = ReportIn
 
 // PatchUsersPassportNumberJSONRequestBody defines body for PatchUsersPassportNumber for application/json ContentType.
 type PatchUsersPassportNumberJSONRequestBody = UserUpdate
@@ -69,6 +120,27 @@ type ServerInterface interface {
 	// (GET /health)
 	GetHealth(w http.ResponseWriter, r *http.Request)
 
+	// (GET /tasks/)
+	GetTasks(w http.ResponseWriter, r *http.Request, params GetTasksParams)
+
+	// (POST /tasks/)
+	PostTasks(w http.ResponseWriter, r *http.Request)
+
+	// (DELETE /tasks/{id})
+	DeleteTasksId(w http.ResponseWriter, r *http.Request, id int)
+
+	// (GET /tasks/{id})
+	GetTasksId(w http.ResponseWriter, r *http.Request, id int)
+
+	// (PATCH /tasks/{id})
+	PatchTasksId(w http.ResponseWriter, r *http.Request, id int)
+
+	// (POST /tasks/{id}/start)
+	PostTasksIdStart(w http.ResponseWriter, r *http.Request, id int)
+
+	// (POST /tasks/{id}/stop)
+	PostTasksIdStop(w http.ResponseWriter, r *http.Request, id int)
+
 	// (GET /users/)
 	GetUsers(w http.ResponseWriter, r *http.Request, params GetUsersParams)
 
@@ -77,6 +149,9 @@ type ServerInterface interface {
 
 	// (GET /users/current)
 	GetUsersCurrent(w http.ResponseWriter, r *http.Request)
+
+	// (POST /users/{id}/report)
+	PostUsersIdReport(w http.ResponseWriter, r *http.Request, id int)
 
 	// (DELETE /users/{passportNumber})
 	DeleteUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string)
@@ -112,6 +187,199 @@ func (siw *ServerInterfaceWrapper) GetHealth(w http.ResponseWriter, r *http.Requ
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
+// GetTasks operation middleware
+func (siw *ServerInterfaceWrapper) GetTasks(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetTasksParams
+
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", r.URL.Query(), &params.Offset)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "offset", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", r.URL.Query(), &params.Limit)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTasks(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// PostTasks operation middleware
+func (siw *ServerInterfaceWrapper) PostTasks(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostTasks(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// DeleteTasksId operation middleware
+func (siw *ServerInterfaceWrapper) DeleteTasksId(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteTasksId(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetTasksId operation middleware
+func (siw *ServerInterfaceWrapper) GetTasksId(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTasksId(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// PatchTasksId operation middleware
+func (siw *ServerInterfaceWrapper) PatchTasksId(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PatchTasksId(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// PostTasksIdStart operation middleware
+func (siw *ServerInterfaceWrapper) PostTasksIdStart(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostTasksIdStart(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// PostTasksIdStop operation middleware
+func (siw *ServerInterfaceWrapper) PostTasksIdStop(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostTasksIdStop(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
 // GetUsers operation middleware
 func (siw *ServerInterfaceWrapper) GetUsers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -131,19 +399,19 @@ func (siw *ServerInterfaceWrapper) GetUsers(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// ------------- Optional query parameter "limit" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "limit", r.URL.Query(), &params.Limit)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
-		return
-	}
-
 	// ------------- Optional query parameter "offset" -------------
 
 	err = runtime.BindQueryParameter("form", true, false, "offset", r.URL.Query(), &params.Offset)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "offset", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", r.URL.Query(), &params.Limit)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
 		return
 	}
 
@@ -181,6 +449,34 @@ func (siw *ServerInterfaceWrapper) GetUsersCurrent(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetUsersCurrent(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// PostUsersIdReport operation middleware
+func (siw *ServerInterfaceWrapper) PostUsersIdReport(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostUsersIdReport(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -389,9 +685,17 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	}
 
 	m.HandleFunc("GET "+options.BaseURL+"/health", wrapper.GetHealth)
+	m.HandleFunc("GET "+options.BaseURL+"/tasks/", wrapper.GetTasks)
+	m.HandleFunc("POST "+options.BaseURL+"/tasks/", wrapper.PostTasks)
+	m.HandleFunc("DELETE "+options.BaseURL+"/tasks/{id}", wrapper.DeleteTasksId)
+	m.HandleFunc("GET "+options.BaseURL+"/tasks/{id}", wrapper.GetTasksId)
+	m.HandleFunc("PATCH "+options.BaseURL+"/tasks/{id}", wrapper.PatchTasksId)
+	m.HandleFunc("POST "+options.BaseURL+"/tasks/{id}/start", wrapper.PostTasksIdStart)
+	m.HandleFunc("POST "+options.BaseURL+"/tasks/{id}/stop", wrapper.PostTasksIdStop)
 	m.HandleFunc("GET "+options.BaseURL+"/users/", wrapper.GetUsers)
 	m.HandleFunc("POST "+options.BaseURL+"/users/", wrapper.PostUsers)
 	m.HandleFunc("GET "+options.BaseURL+"/users/current", wrapper.GetUsersCurrent)
+	m.HandleFunc("POST "+options.BaseURL+"/users/{id}/report", wrapper.PostUsersIdReport)
 	m.HandleFunc("DELETE "+options.BaseURL+"/users/{passportNumber}", wrapper.DeleteUsersPassportNumber)
 	m.HandleFunc("GET "+options.BaseURL+"/users/{passportNumber}", wrapper.GetUsersPassportNumber)
 	m.HandleFunc("PATCH "+options.BaseURL+"/users/{passportNumber}", wrapper.PatchUsersPassportNumber)

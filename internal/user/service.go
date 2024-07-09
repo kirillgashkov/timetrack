@@ -14,6 +14,7 @@ import (
 )
 
 type User struct {
+	ID             int
 	PassportNumber string `db:"passport_number"`
 	Surname        string
 	Name           string
@@ -57,7 +58,7 @@ func (s *Service) Create(ctx context.Context, passportNumber string) (*User, err
 		`
 			INSERT INTO users (passport_number, surname, name, patronymic, address)
 			VALUES ($1, $2, $3, $4, $5)
-			RETURNING passport_number, surname, name, patronymic, address
+			RETURNING id, passport_number, surname, name, patronymic, address
 		`,
 		passportNumber,
 		"some surname",
@@ -80,11 +81,11 @@ func (s *Service) Create(ctx context.Context, passportNumber string) (*User, err
 	return &u, nil
 }
 
-func (s *Service) Get(ctx context.Context, passportNumber string) (*User, error) {
+func (s *Service) GetByPassportNumber(ctx context.Context, passportNumber string) (*User, error) {
 	rows, err := s.db.Query(
 		ctx,
 		`
-			SELECT passport_number, surname, name, patronymic, address
+			SELECT id, passport_number, surname, name, patronymic, address
 			FROM users
 			WHERE passport_number = $1
 		`,
@@ -104,7 +105,7 @@ func (s *Service) Get(ctx context.Context, passportNumber string) (*User, error)
 	return &u, nil
 }
 
-func (s *Service) GetAll(ctx context.Context, filter *Filter, limit, offset int) ([]User, error) {
+func (s *Service) List(ctx context.Context, filter *Filter, offset, limit int) ([]User, error) {
 	query, args := buildSelectQuery(filter, limit, offset)
 
 	slog.Debug("executing query", "query", query, "args", args)
@@ -122,7 +123,7 @@ func (s *Service) GetAll(ctx context.Context, filter *Filter, limit, offset int)
 	return users, nil
 }
 
-func (s *Service) Update(ctx context.Context, passportNumber string, update *Update) (*User, error) {
+func (s *Service) UpdateByPassportNumber(ctx context.Context, passportNumber string, update *Update) (*User, error) {
 	rows, err := s.db.Query(
 		ctx,
 		`
@@ -132,7 +133,7 @@ func (s *Service) Update(ctx context.Context, passportNumber string, update *Upd
 				patronymic = CASE WHEN $5 THEN $4 ELSE COALESCE($4, patronymic) END,
 				address = COALESCE($6, address)
 			WHERE passport_number = $1
-			RETURNING passport_number, surname, name, patronymic, address
+			RETURNING id, passport_number, surname, name, patronymic, address
 		`,
 		passportNumber,
 		update.Surname,
@@ -155,13 +156,13 @@ func (s *Service) Update(ctx context.Context, passportNumber string, update *Upd
 	return &u, nil
 }
 
-func (s *Service) Delete(ctx context.Context, passportNumber string) (*User, error) {
+func (s *Service) DeleteByPassportNumber(ctx context.Context, passportNumber string) (*User, error) {
 	rows, err := s.db.Query(
 		ctx,
 		`
 			DELETE FROM users
 			WHERE passport_number = $1
-			RETURNING passport_number, surname, name, patronymic, address
+			RETURNING id, passport_number, surname, name, patronymic, address
 		`,
 		passportNumber,
 	)
@@ -184,7 +185,7 @@ func (s *Service) Delete(ctx context.Context, passportNumber string) (*User, err
 // comparison (pg_trgm).
 func buildSelectQuery(filter *Filter, limit, offset int) (string, []any) {
 	baseQuery := `
-		SELECT passport_number, surname, name, patronymic, address
+		SELECT id, passport_number, surname, name, patronymic, address
 		FROM users
 	`
 	whereConditions := make([]string, 0)

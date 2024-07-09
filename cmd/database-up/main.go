@@ -9,13 +9,14 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/kirillgashkov/timetrack/internal/app/config"
+	"github.com/kirillgashkov/timetrack/internal/app/logging"
+
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/kirillgashkov/timetrack/db/timetrackdb"
-	"github.com/kirillgashkov/timetrack/internal/config"
-	"github.com/kirillgashkov/timetrack/internal/logging"
+	"github.com/kirillgashkov/timetrack/db/timetrack"
 )
 
 func main() {
@@ -61,7 +62,7 @@ func newDB(ctx context.Context, cfg *config.DatabaseConfig) (*sql.DB, error) {
 }
 
 func migrateDB(db *sql.DB) error {
-	sourceDriver, err := iofs.New(timetrackdb.Migrations(), ".")
+	sourceDriver, err := iofs.New(timetrack.MigrationsFS(), ".")
 	if err != nil {
 		return errors.Join(errors.New("failed to create migrate source driver"), err)
 	}

@@ -1,4 +1,4 @@
-package request
+package apiutil
 
 import (
 	"encoding/json"

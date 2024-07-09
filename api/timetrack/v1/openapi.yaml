@@ -66,17 +66,17 @@ paths:
             example1:
               value: "surname=Ivanov"
         - in: query
+          name: offset
+          schema:
+            type: integer
+            minimum: 0
+          required: false
+        - in: query
           name: limit
           schema:
             type: integer
             minimum: 1
             maximum: 100
-          required: false
-        - in: query
-          name: offset
-          schema:
-            type: integer
-            minimum: 0
           required: false
       responses:
         "200":
@@ -230,6 +230,290 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /tasks/:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskCreate"
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          description: Error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Unprocessable entity.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    get:
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            minimum: 0
+          required: false
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+          required: false
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Unprocessable entity.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /tasks/{id}:
+    get:
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Unprocessable entity.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    patch:
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskUpdate"
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Unprocessable entity.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Unprocessable entity.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /tasks/{id}/start:
+    post:
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+      responses:
+        "204":
+          description: No content.
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Unprocessable entity.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /tasks/{id}/stop:
+    post:
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+      responses:
+        "204":
+          description: No content.
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Unprocessable entity.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /users/{id}/report:
+    post:
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportIn"
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReportTask"
+        "401":
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Unprocessable entity.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -254,8 +538,10 @@ components:
 
     User:
       type: object
-      required: [passportNumber, surname, name, address]
+      required: [id, passportNumber, surname, name, address]
       properties:
+        id:
+          type: integer
         passportNumber:
           type: string
         surname:
@@ -285,3 +571,53 @@ components:
             type: string
           address:
             type: string
+    Task:
+      type: object
+      required: [id, description]
+      properties:
+        id:
+          type: integer
+        description:
+          type: string
+
+    TaskCreate:
+      type: object
+      required: [description]
+      properties:
+        description:
+          type: string
+
+    TaskUpdate:
+      type: object
+      properties:
+        description:
+          type: string
+
+    ReportIn:
+      type: object
+      required: [from, to]
+      properties:
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+
+    ReportDuration:
+      type: object
+      required: [hours, minutes]
+      properties:
+        hours:
+          type: integer
+        minutes:
+          type: integer
+
+    ReportTask:
+      type: object
+      required: [id, description, start, stop]
+      properties:
+        task:
+          $ref: "#/components/schemas/Task"
+        duration:
+          $ref: "#/components/schemas/ReportDuration"

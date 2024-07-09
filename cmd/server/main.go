@@ -8,10 +8,17 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/kirillgashkov/timetrack/internal/api"
-	"github.com/kirillgashkov/timetrack/internal/config"
-	"github.com/kirillgashkov/timetrack/internal/database"
-	"github.com/kirillgashkov/timetrack/internal/logging"
+	"github.com/kirillgashkov/timetrack/internal/reporting"
+
+	"github.com/kirillgashkov/timetrack/internal/tracking"
+
+	"github.com/kirillgashkov/timetrack/internal/task"
+
+	"github.com/kirillgashkov/timetrack/internal/app/api"
+	"github.com/kirillgashkov/timetrack/internal/app/config"
+	"github.com/kirillgashkov/timetrack/internal/app/database"
+	"github.com/kirillgashkov/timetrack/internal/app/logging"
+
 	"github.com/kirillgashkov/timetrack/internal/user"
 )
 
@@ -34,15 +41,20 @@ func mainErr() error {
 	logger := logging.NewLogger(cfg)
 	slog.SetDefault(logger)
 
-	db, err := database.NewPool(ctx, &cfg.Database)
+	db, err := database.NewPool(ctx, cfg)
 	if err != nil {
 		return errors.Join(errors.New("failed to create database pool"), err)
 	}
 	defer db.Close()
 
+	reportingService := reporting.NewService(db)
+	taskService := task.NewService(db)
+	trackingService := tracking.NewService(db)
 	userService := user.NewService(db)
 
-	srv, err := api.NewServer(&cfg.Server, userService)
+	srv, err := api.NewServer(
+		&cfg.Server, reportingService, taskService, trackingService, userService,
+	)
 	if err != nil {
 		return errors.Join(errors.New("failed to create server"), err)
 	}
