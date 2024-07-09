@@ -32,6 +32,10 @@ func (h *Handler) PostUsersIdReport(w http.ResponseWriter, r *http.Request, id i
 		apiutil.MustWriteError(w, "missing to", http.StatusUnprocessableEntity)
 		return
 	}
+	if reportIn.From.After(reportIn.To) {
+		apiutil.MustWriteError(w, "from must be before to", http.StatusUnprocessableEntity)
+		return
+	}
 
 	reportTasks, err := h.service.Report(r.Context(), id, reportIn.From, reportIn.To)
 	if err != nil {
