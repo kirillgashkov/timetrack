@@ -29,7 +29,7 @@ func (s *Service) Report(ctx context.Context, userID int, from, to time.Time) ([
 		`
 			SELECT tasks.id AS task_id,
 				   tasks.description AS task_description,
-				   SUM(works.stopped_at - works.started_at) AS duration
+				   SUM(LEAST(works.stopped_at, $3) - GREATEST(works.started_at, $2)) AS duration
 			FROM works
 			JOIN tasks ON works.task_id = tasks.id
 			WHERE user_id = $1
