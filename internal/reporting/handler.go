@@ -2,7 +2,6 @@ package reporting
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/kirillgashkov/timetrack/api/timetrackapi/v1"
 	"github.com/kirillgashkov/timetrack/internal/app/api/apiutil"
@@ -19,24 +18,22 @@ func NewHandler(service *Service) *Handler {
 // PostUsersIdReport handles "POST /users/{id}/report".
 //
 //nolint:revive
-func (h *Handler) PostUsersIdReport(
-	w http.ResponseWriter, r *http.Request, id int, params timetrackapi.PostUsersIdReportParams,
-) {
-	var from time.Time
-	if params.From != nil {
-		from = *params.From
-	} else {
-		apiutil.MustWriteError(w, "from is required", http.StatusUnprocessableEntity)
+func (h *Handler) PostUsersIdReport(w http.ResponseWriter, r *http.Request, id int) {
+	var reportIn *timetrackapi.ReportIn
+	if err := apiutil.ReadJSON(r, &reportIn); err != nil {
+		apiutil.MustWriteError(w, "invalid request", http.StatusUnprocessableEntity)
+		return
 	}
-	var to time.Time
-	if params.To != nil {
-		to = *params.To
-	} else {
-		apiutil.MustWriteError(w, "to is required", http.StatusUnprocessableEntity)
-
+	if reportIn.From.IsZero() {
+		apiutil.MustWriteError(w, "missing from", http.StatusUnprocessableEntity)
+		return
+	}
+	if reportIn.To.IsZero() {
+		apiutil.MustWriteError(w, "missing to", http.StatusUnprocessableEntity)
+		return
 	}
 
-	report, err := h.Service.Report(r.Context(), id, from, to)
+	report, err := h.Service.Report(r.Context(), id, reportIn.From, reportIn.To)
 	if err != nil {
 		apiutil.MustWriteInternalServerError(w)
 		return

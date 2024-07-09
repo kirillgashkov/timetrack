@@ -28,6 +28,12 @@ type Health struct {
 	Status string `json:"status"`
 }
 
+// ReportIn defines model for ReportIn.
+type ReportIn struct {
+	From time.Time `json:"from"`
+	To   time.Time `json:"to"`
+}
+
 // ReportTask defines model for ReportTask.
 type ReportTask struct {
 	Duration *string `json:"duration,omitempty"`
@@ -87,12 +93,6 @@ type GetUsersParams struct {
 	Limit  *int      `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
-// PostUsersIdReportParams defines parameters for PostUsersIdReport.
-type PostUsersIdReportParams struct {
-	From *time.Time `form:"from,omitempty" json:"from,omitempty"`
-	To   *time.Time `form:"to,omitempty" json:"to,omitempty"`
-}
-
 // PostTasksJSONRequestBody defines body for PostTasks for application/json ContentType.
 type PostTasksJSONRequestBody = TaskCreate
 
@@ -101,6 +101,9 @@ type PatchTasksIdJSONRequestBody = TaskUpdate
 
 // PostUsersJSONRequestBody defines body for PostUsers for application/json ContentType.
 type PostUsersJSONRequestBody = UserCreate
+
+// PostUsersIdReportJSONRequestBody defines body for PostUsersIdReport for application/json ContentType.
+type PostUsersIdReportJSONRequestBody = ReportIn
 
 // PatchUsersPassportNumberJSONRequestBody defines body for PatchUsersPassportNumber for application/json ContentType.
 type PatchUsersPassportNumberJSONRequestBody = UserUpdate
@@ -142,7 +145,7 @@ type ServerInterface interface {
 	GetUsersCurrent(w http.ResponseWriter, r *http.Request)
 
 	// (POST /users/{id}/report)
-	PostUsersIdReport(w http.ResponseWriter, r *http.Request, id int, params PostUsersIdReportParams)
+	PostUsersIdReport(w http.ResponseWriter, r *http.Request, id int)
 
 	// (DELETE /users/{passportNumber})
 	DeleteUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string)
@@ -466,27 +469,8 @@ func (siw *ServerInterfaceWrapper) PostUsersIdReport(w http.ResponseWriter, r *h
 
 	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params PostUsersIdReportParams
-
-	// ------------- Optional query parameter "from" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "from", r.URL.Query(), &params.From)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "to" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "to", r.URL.Query(), &params.To)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
-		return
-	}
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PostUsersIdReport(w, r, id, params)
+		siw.Handler.PostUsersIdReport(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
