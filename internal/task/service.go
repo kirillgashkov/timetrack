@@ -4,9 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -49,10 +47,6 @@ func (s *Service) Create(ctx context.Context, create *Create) (*Task, error) {
 
 	task, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[Task])
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
-			return nil, ErrAlreadyExists
-		}
 		return nil, errors.Join(errors.New("failed to collect task"), err)
 	}
 	return &task, nil
