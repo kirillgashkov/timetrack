@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/oapi-codegen/runtime"
 )
@@ -25,6 +26,12 @@ type Error struct {
 // Health defines model for Health.
 type Health struct {
 	Status string `json:"status"`
+}
+
+// ReportTask defines model for ReportTask.
+type ReportTask struct {
+	Duration *string `json:"duration,omitempty"`
+	Task     *Task   `json:"task,omitempty"`
 }
 
 // Task defines model for Task.
@@ -80,6 +87,12 @@ type GetUsersParams struct {
 	Limit  *int      `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// PostUsersIdReportParams defines parameters for PostUsersIdReport.
+type PostUsersIdReportParams struct {
+	From *time.Time `form:"from,omitempty" json:"from,omitempty"`
+	To   *time.Time `form:"to,omitempty" json:"to,omitempty"`
+}
+
 // PostTasksJSONRequestBody defines body for PostTasks for application/json ContentType.
 type PostTasksJSONRequestBody = TaskCreate
 
@@ -127,6 +140,9 @@ type ServerInterface interface {
 
 	// (GET /users/current)
 	GetUsersCurrent(w http.ResponseWriter, r *http.Request)
+
+	// (POST /users/{id}/report)
+	PostUsersIdReport(w http.ResponseWriter, r *http.Request, id int, params PostUsersIdReportParams)
 
 	// (DELETE /users/{passportNumber})
 	DeleteUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string)
@@ -433,6 +449,53 @@ func (siw *ServerInterfaceWrapper) GetUsersCurrent(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
+// PostUsersIdReport operation middleware
+func (siw *ServerInterfaceWrapper) PostUsersIdReport(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params PostUsersIdReportParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "from", r.URL.Query(), &params.From)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "to", r.URL.Query(), &params.To)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostUsersIdReport(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
 // DeleteUsersPassportNumber operation middleware
 func (siw *ServerInterfaceWrapper) DeleteUsersPassportNumber(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -642,6 +705,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("GET "+options.BaseURL+"/users/", wrapper.GetUsers)
 	m.HandleFunc("POST "+options.BaseURL+"/users/", wrapper.PostUsers)
 	m.HandleFunc("GET "+options.BaseURL+"/users/current", wrapper.GetUsersCurrent)
+	m.HandleFunc("POST "+options.BaseURL+"/users/{id}/report", wrapper.PostUsersIdReport)
 	m.HandleFunc("DELETE "+options.BaseURL+"/users/{passportNumber}", wrapper.DeleteUsersPassportNumber)
 	m.HandleFunc("GET "+options.BaseURL+"/users/{passportNumber}", wrapper.GetUsersPassportNumber)
 	m.HandleFunc("PATCH "+options.BaseURL+"/users/{passportNumber}", wrapper.PatchUsersPassportNumber)
