@@ -1,6 +1,7 @@
 package task
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -65,17 +66,58 @@ func (h *Handler) GetTasks(w http.ResponseWriter, r *http.Request, params timetr
 
 // GetTasksId handles "GET /tasks/{id}".
 func (h *Handler) GetTasksId(w http.ResponseWriter, r *http.Request, id int) {
-	panic("implement me")
+	t, err := h.Service.Get(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			apiutil.MustWriteError(w, "task not found", http.StatusNotFound)
+			return
+		}
+		slog.Error("failed to get task", "error", err)
+		apiutil.MustWriteInternalServerError(w)
+		return
+	}
+
+	apiutil.MustWriteJSON(w, toTaskAPI(t), http.StatusOK)
 }
 
 // PatchTasksId handles "PATCH /tasks/{id}".
 func (h *Handler) PatchTasksId(w http.ResponseWriter, r *http.Request, id int) {
-	panic("implement me")
+	var taskUpdateAPI *timetrackapi.TaskUpdate
+	if err := apiutil.ReadJSON(r, &taskUpdateAPI); err != nil {
+		apiutil.MustWriteError(w, "invalid request", http.StatusUnprocessableEntity)
+		return
+	}
+
+	t, err := h.Service.Update(r.Context(), id, &Update{
+		Description: taskUpdateAPI.Description,
+	})
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			apiutil.MustWriteError(w, "task not found", http.StatusNotFound)
+			return
+		}
+		slog.Error("failed to update task", "error", err)
+		apiutil.MustWriteInternalServerError(w)
+		return
+	}
+
+	apiutil.MustWriteJSON(w, toTaskAPI(t), http.StatusOK)
 }
 
 // DeleteTasksId handles "DELETE /tasks/{id}".
 func (h *Handler) DeleteTasksId(w http.ResponseWriter, r *http.Request, id int) {
-	panic("implement me")
+	t, err := h.Service.Delete(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			apiutil.MustWriteError(w, "task not found", http.StatusNotFound)
+			return
+		}
+		slog.Error("failed to delete task", "error", err)
+		apiutil.MustWriteInternalServerError(w)
+		return
+	}
+
+	apiutil.MustWriteJSON(w, toTaskAPI(t), http.StatusOK)
 }
 
 func toTaskAPI(t *Task) *timetrackapi.Task {
