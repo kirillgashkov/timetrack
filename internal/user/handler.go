@@ -160,6 +160,7 @@ func (h *Handler) GetUsersPassportNumber(w http.ResponseWriter, r *http.Request,
 
 func userToAPI(u *User) *timetrackapi.User {
 	return &timetrackapi.User{
+		Id:             u.ID,
 		PassportNumber: u.PassportNumber,
 		Surname:        u.Surname,
 		Name:           u.Name,

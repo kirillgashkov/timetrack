@@ -14,6 +14,7 @@ import (
 )
 
 type User struct {
+	ID             int
 	PassportNumber string `db:"passport_number"`
 	Surname        string
 	Name           string
