@@ -16,6 +16,10 @@ func MustWriteJSON(w http.ResponseWriter, v any, code int) {
 	}
 }
 
+func MustWriteNoContent(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func MustWriteError(w http.ResponseWriter, m string, code int) {
 	e := timetrackapi.Error{Message: m}
 	MustWriteJSON(w, e, code)
