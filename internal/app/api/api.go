@@ -6,9 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/kirillgashkov/timetrack/internal/app/config"
-
 	"github.com/kirillgashkov/timetrack/api/timetrackapi/v1"
+	"github.com/kirillgashkov/timetrack/internal/app/config"
 	"github.com/kirillgashkov/timetrack/internal/user"
 )
 
