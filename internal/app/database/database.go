@@ -3,14 +3,21 @@ package database
 import (
 	"context"
 	"errors"
-
-	"github.com/kirillgashkov/timetrack/internal/app/config"
+	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/tracelog"
+	"github.com/kirillgashkov/timetrack/internal/app/config"
 )
 
 func NewPool(ctx context.Context, cfg *config.DatabaseConfig) (*pgxpool.Pool, error) {
-	db, err := pgxpool.New(ctx, cfg.DSN)
+	pgxCfg, err := pgxpool.ParseConfig(cfg.DSN)
+	if err != nil {
+		return nil, errors.Join(errors.New("failed to parse database config"), err)
+	}
+	pgxCfg.ConnConfig.Tracer = newTracer()
+
+	db, err := pgxpool.NewWithConfig(ctx, pgxCfg)
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to open database"), err)
 	}
@@ -18,4 +25,36 @@ func NewPool(ctx context.Context, cfg *config.DatabaseConfig) (*pgxpool.Pool, er
 		return nil, errors.Join(errors.New("failed to ping database"), err)
 	}
 	return db, nil
+}
+
+func newTracer() *tracelog.TraceLog {
+	loggerFunc := func(ctx context.Context, level tracelog.LogLevel, msg string, data map[string]interface{}) {
+		attrs := make([]slog.Attr, 0, len(data))
+		for k, v := range data {
+			attrs = append(attrs, slog.Any(k, v))
+		}
+		attrs = append(attrs, slog.String("source", "pgx"))
+
+		var lvl slog.Level
+		switch level {
+		case tracelog.LogLevelTrace:
+			lvl = slog.LevelDebug
+		case tracelog.LogLevelDebug:
+			lvl = slog.LevelDebug
+		case tracelog.LogLevelInfo:
+			lvl = slog.LevelInfo
+		case tracelog.LogLevelWarn:
+			lvl = slog.LevelWarn
+		case tracelog.LogLevelError:
+			lvl = slog.LevelError
+		default:
+			lvl = slog.LevelError
+		}
+
+		slog.LogAttrs(ctx, lvl, msg, attrs...)
+	}
+	return &tracelog.TraceLog{
+		Logger:   tracelog.LoggerFunc(loggerFunc),
+		LogLevel: tracelog.LogLevelDebug,
+	}
 }
