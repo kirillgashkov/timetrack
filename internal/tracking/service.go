@@ -19,6 +19,9 @@ type Service struct {
 	db *pgxpool.Pool
 }
 
+type UserID int
+type TaskID int
+
 var (
 	ErrAlreadyStarted = errors.New("task already started")
 	ErrNotStarted     = errors.New("task not started")
@@ -28,7 +31,7 @@ func NewService(db *pgxpool.Pool) *Service {
 	return &Service{db: db}
 }
 
-func (s *Service) StartTask(ctx context.Context, taskID int, userID int) error {
+func (s *Service) StartTask(ctx context.Context, taskID TaskID, userID UserID) error {
 	_, err := s.db.Exec(
 		ctx,
 		`INSERT INTO works (started_at, task_id, user_id, status) VALUES (now(), $1, $2, $3)`,
@@ -46,7 +49,7 @@ func (s *Service) StartTask(ctx context.Context, taskID int, userID int) error {
 	return nil
 }
 
-func (s *Service) StopTask(ctx context.Context, taskID int, userID int) error {
+func (s *Service) StopTask(ctx context.Context, taskID TaskID, userID UserID) error {
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return errors.Join(errors.New("failed to start transaction"), err)
