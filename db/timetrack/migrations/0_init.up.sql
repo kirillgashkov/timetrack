@@ -23,30 +23,24 @@ CREATE TABLE IF NOT EXISTS tasks (
     description text NOT NULL,
     PRIMARY KEY (id)
 );
-CREATE INDEX IF NOT EXISTS tasks_description_trgm_idx ON tasks USING gin (description gin_trgm_ops);
 
-CREATE TABLE IF NOT EXISTS tasks_users (
+CREATE TABLE IF NOT EXISTS works (
+    id serial NOT NULL,
+    started_at timestamp with time zone NOT NULL,
+    stopped_at timestamp with time zone,
     task_id integer NOT NULL,
     user_id integer NOT NULL,
     status text NOT NULL,
-    PRIMARY KEY (task_id, user_id),
-    FOREIGN KEY (task_id) REFERENCES tasks (id),
-    FOREIGN KEY (user_id) REFERENCES users (id),
-    CHECK (status IN ('active', 'inactive'))
-);
--- TODO: Add indexes.
-
-CREATE TABLE IF NOT EXISTS tracks (
-    id serial NOT NULL,
-    type text NOT NULL,
-    timestamp timestamp with time zone NOT NULL DEFAULT now(),
-    task_id integer NOT NULL,
-    user_id integer NOT NULL,
     PRIMARY KEY (id),
     FOREIGN KEY (task_id) REFERENCES tasks (id),
     FOREIGN KEY (user_id) REFERENCES users (id),
-    CHECK (type IN ('start', 'stop'))
+    CHECK (
+        status = 'started' AND stopped_at IS NULL
+        OR status = 'stopped' AND stopped_at IS NOT NULL
+    )
 );
--- TODO: Add indexes.
+CREATE UNIQUE INDEX IF NOT EXISTS works_task_id_user_id_status_idx
+    ON works (task_id, user_id, status)
+    WHERE status = 'started';
 
 COMMIT;

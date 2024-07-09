@@ -1,14 +1,7 @@
 package timetrackdb
 
-// TrackTypeStart and TrackTypeStop are the types of time tracking events.
+// WorkStatusStarted and WorkStatusStopped are the statuses of a work.
 const (
-	TrackTypeStart = "start"
-	TrackTypeStop  = "stop"
-)
-
-// TaskUserStatusActive and TaskUserStatusInactive are the statuses of a user's
-// current participation in a task.
-const (
-	TaskUserStatusActive   = "active"
-	TaskUserStatusInactive = "inactive"
+	WorkStatusStarted = "started"
+	WorkStatusStopped = "stopped"
 )
