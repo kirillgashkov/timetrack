@@ -12,7 +12,11 @@ import (
 )
 
 type Handler struct {
-	Service *Service
+	service *Service
+}
+
+func NewHandler(service *Service) *Handler {
+	return &Handler{service: service}
 }
 
 func (h *Handler) PostUsers(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +30,7 @@ func (h *Handler) PostUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := h.Service.Create(r.Context(), userCreate.PassportNumber)
+	u, err := h.service.Create(r.Context(), userCreate.PassportNumber)
 	if err != nil {
 		if errors.Is(err, ErrAlreadyExists) {
 			apiutil.MustWriteError(w, "user already exists", http.StatusBadRequest)
@@ -84,7 +88,7 @@ func (h *Handler) GetUsers(w http.ResponseWriter, r *http.Request, params timetr
 		limit = *params.Limit
 	}
 
-	users, err := h.Service.List(r.Context(), filter, offset, limit)
+	users, err := h.service.List(r.Context(), filter, offset, limit)
 	if err != nil {
 		slog.Error("failed to get users", "error", err)
 		apiutil.MustWriteInternalServerError(w)
@@ -109,7 +113,7 @@ func (h *Handler) PatchUsersPassportNumber(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	u, err := h.Service.UpdateByPassportNumber(r.Context(), passportNumber, &Update{
+	u, err := h.service.UpdateByPassportNumber(r.Context(), passportNumber, &Update{
 		Surname:    userUpdate.Surname,
 		Name:       userUpdate.Name,
 		Patronymic: userUpdate.Patronymic,
@@ -129,7 +133,7 @@ func (h *Handler) PatchUsersPassportNumber(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *Handler) DeleteUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string) {
-	u, err := h.Service.DeleteByPassportNumber(r.Context(), passportNumber)
+	u, err := h.service.DeleteByPassportNumber(r.Context(), passportNumber)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			apiutil.MustWriteError(w, "user not found", http.StatusNotFound)
@@ -144,7 +148,7 @@ func (h *Handler) DeleteUsersPassportNumber(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *Handler) GetUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string) {
-	u, err := h.Service.GetByPassportNumber(r.Context(), passportNumber)
+	u, err := h.service.GetByPassportNumber(r.Context(), passportNumber)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			apiutil.MustWriteError(w, "user not found", http.StatusNotFound)

@@ -9,7 +9,11 @@ import (
 )
 
 type Handler struct {
-	Service *Service
+	service *Service
+}
+
+func NewHandler(service *Service) *Handler {
+	return &Handler{service: service}
 }
 
 // PostTasksIdStart handles "POST /tasks/{id}/start".
@@ -18,7 +22,7 @@ type Handler struct {
 func (h *Handler) PostTasksIdStart(w http.ResponseWriter, r *http.Request, id int) {
 	userID := 1 // TODO: use real user ID
 
-	err := h.Service.StartTask(r.Context(), TaskID(id), UserID(userID))
+	err := h.service.StartTask(r.Context(), TaskID(id), UserID(userID))
 	if err != nil {
 		if errors.Is(err, ErrAlreadyStarted) {
 			apiutil.MustWriteError(w, "task already started", http.StatusBadRequest)
@@ -38,7 +42,7 @@ func (h *Handler) PostTasksIdStart(w http.ResponseWriter, r *http.Request, id in
 func (h *Handler) PostTasksIdStop(w http.ResponseWriter, r *http.Request, id int) {
 	userID := 1 // TODO: use real user ID
 
-	err := h.Service.StopTask(r.Context(), TaskID(id), UserID(userID))
+	err := h.service.StopTask(r.Context(), TaskID(id), UserID(userID))
 	if err != nil {
 		if errors.Is(err, ErrNotStarted) {
 			apiutil.MustWriteError(w, "task not started", http.StatusBadRequest)

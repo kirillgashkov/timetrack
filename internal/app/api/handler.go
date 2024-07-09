@@ -33,10 +33,10 @@ func NewHandler(
 	userService *user.Service,
 ) *Handler {
 	return &Handler{
-		reportingHandler: &reportingHandler{Service: reportingService},
-		taskHandler:      &taskHandler{Service: taskService},
-		trackingHandler:  &trackingHandler{Service: trackingService},
-		userHandler:      &userHandler{Service: userService},
+		reportingHandler: reporting.NewHandler(reportingService),
+		taskHandler:      task.NewHandler(taskService),
+		trackingHandler:  tracking.NewHandler(trackingService),
+		userHandler:      user.NewHandler(userService),
 	}
 }
 

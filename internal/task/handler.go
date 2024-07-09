@@ -10,7 +10,11 @@ import (
 )
 
 type Handler struct {
-	Service *Service
+	service *Service
+}
+
+func NewHandler(service *Service) *Handler {
+	return &Handler{service: service}
 }
 
 // PostTasks handles "POST /tasks/".
@@ -21,7 +25,7 @@ func (h *Handler) PostTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := h.Service.Create(r.Context(), &Create{Description: taskCreate.Description})
+	u, err := h.service.Create(r.Context(), &Create{Description: taskCreate.Description})
 	if err != nil {
 		slog.Error("failed to create task", "error", err)
 		apiutil.MustWriteInternalServerError(w)
@@ -50,7 +54,7 @@ func (h *Handler) GetTasks(w http.ResponseWriter, r *http.Request, params timetr
 		limit = *params.Limit
 	}
 
-	tasks, err := h.Service.List(r.Context(), offset, limit)
+	tasks, err := h.service.List(r.Context(), offset, limit)
 	if err != nil {
 		slog.Error("failed to get tasks", "error", err)
 		apiutil.MustWriteInternalServerError(w)
@@ -68,7 +72,7 @@ func (h *Handler) GetTasks(w http.ResponseWriter, r *http.Request, params timetr
 //
 //nolint:revive
 func (h *Handler) GetTasksId(w http.ResponseWriter, r *http.Request, id int) {
-	t, err := h.Service.Get(r.Context(), id)
+	t, err := h.service.Get(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			apiutil.MustWriteError(w, "task not found", http.StatusNotFound)
@@ -92,7 +96,7 @@ func (h *Handler) PatchTasksId(w http.ResponseWriter, r *http.Request, id int) {
 		return
 	}
 
-	t, err := h.Service.Update(r.Context(), id, &Update{
+	t, err := h.service.Update(r.Context(), id, &Update{
 		Description: taskUpdateAPI.Description,
 	})
 	if err != nil {
@@ -112,7 +116,7 @@ func (h *Handler) PatchTasksId(w http.ResponseWriter, r *http.Request, id int) {
 //
 //nolint:revive
 func (h *Handler) DeleteTasksId(w http.ResponseWriter, r *http.Request, id int) {
-	t, err := h.Service.Delete(r.Context(), id)
+	t, err := h.service.Delete(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			apiutil.MustWriteError(w, "task not found", http.StatusNotFound)

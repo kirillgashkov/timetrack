@@ -8,11 +8,11 @@ import (
 )
 
 type Handler struct {
-	Service *Service
+	service *Service
 }
 
 func NewHandler(service *Service) *Handler {
-	return &Handler{Service: service}
+	return &Handler{service: service}
 }
 
 // PostUsersIdReport handles "POST /users/{id}/report".
@@ -33,7 +33,7 @@ func (h *Handler) PostUsersIdReport(w http.ResponseWriter, r *http.Request, id i
 		return
 	}
 
-	report, err := h.Service.Report(r.Context(), id, reportIn.From, reportIn.To)
+	report, err := h.service.Report(r.Context(), id, reportIn.From, reportIn.To)
 	if err != nil {
 		apiutil.MustWriteInternalServerError(w)
 		return
