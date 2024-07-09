@@ -33,11 +33,27 @@ func (h *Handler) PostUsersIdReport(w http.ResponseWriter, r *http.Request, id i
 		return
 	}
 
-	report, err := h.service.Report(r.Context(), id, reportIn.From, reportIn.To)
+	reportTasks, err := h.service.Report(r.Context(), id, reportIn.From, reportIn.To)
 	if err != nil {
 		apiutil.MustWriteInternalServerError(w)
 		return
 	}
 
-	apiutil.MustWriteJSON(w, report, http.StatusOK)
+	reportTasksAPI := make([]*timetrackapi.ReportTask, 0, len(reportTasks))
+	for _, t := range reportTasks {
+		hours := int(t.Duration.Hours())
+		minutes := int(t.Duration.Minutes()) % 60
+
+		reportTasksAPI = append(reportTasksAPI, &timetrackapi.ReportTask{
+			Task: &timetrackapi.Task{
+				Id:          t.Task.ID,
+				Description: t.Task.Description,
+			},
+			Duration: &timetrackapi.ReportDuration{
+				Hours:   hours,
+				Minutes: minutes,
+			},
+		})
+	}
+	apiutil.MustWriteJSON(w, reportTasksAPI, http.StatusOK)
 }
