@@ -15,10 +15,6 @@ type Handler struct {
 	Service *Service
 }
 
-func (h *Handler) GetHealth(w http.ResponseWriter, _ *http.Request) {
-	response.MustWriteJSON(w, timetrackapi.Health{Status: "ok"}, http.StatusOK)
-}
-
 func (h *Handler) PostUsers(w http.ResponseWriter, r *http.Request) {
 	var userCreate *timetrackapi.UserCreate
 	if err := request.ReadJSON(r, &userCreate); err != nil {

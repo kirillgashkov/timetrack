@@ -26,7 +26,7 @@ func NewServer(cfg *config.ServerConfig, userService *user.Service) (*http.Serve
 }
 
 func newHandler(userService *user.Service) (http.Handler, error) {
-	si := &user.Handler{Service: userService}
+	h := &Handler{userHandler: &user.Handler{Service: userService}}
 	mux := http.NewServeMux()
-	return timetrackapi.HandlerFromMux(si, mux), nil
+	return timetrackapi.HandlerFromMux(h, mux), nil
 }
