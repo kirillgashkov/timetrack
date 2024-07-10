@@ -26,7 +26,9 @@ func NewServer(
 	userService *user.Service,
 ) (*http.Server, error) {
 	si := NewHandler(authService, reportingService, taskService, trackingService, userService)
-	mux := newServeMux(si)
+
+	authMiddleware := auth.NewMiddleware(authService)
+	mux := newServeMux(si, authMiddleware)
 
 	srv := &http.Server{
 		Addr:              net.JoinHostPort(cfg.Host, cfg.Port),
@@ -45,7 +47,7 @@ func NewServer(
 // all handlers manually. Probably a better solution would be to switch to other
 // oapi-codegen backend that supports per-handler middlewares or other OpenAPI
 // library, but it would be too much hassle for now.
-func newServeMux(si timetrackapi.ServerInterface) *http.ServeMux {
+func newServeMux(si timetrackapi.ServerInterface, authMiddleware *auth.Middleware) *http.ServeMux {
 	wrapper := timetrackapi.ServerInterfaceWrapper{
 		Handler:            si,
 		HandlerMiddlewares: make([]timetrackapi.MiddlewareFunc, 0),
@@ -55,23 +57,27 @@ func newServeMux(si timetrackapi.ServerInterface) *http.ServeMux {
 		},
 	}
 
+	authenticated := func(f func(http.ResponseWriter, *http.Request)) http.Handler {
+		return authMiddleware.Authenticated(http.HandlerFunc(f))
+	}
+
 	m := http.NewServeMux()
 	m.HandleFunc("POST /auth", wrapper.PostAuth)
 	m.HandleFunc("GET /health", wrapper.GetHealth)
-	m.HandleFunc("GET /tasks/", wrapper.GetTasks)
-	m.HandleFunc("POST /tasks/", wrapper.PostTasks)
-	m.HandleFunc("DELETE /tasks/{id}", wrapper.DeleteTasksId)
-	m.HandleFunc("GET /tasks/{id}", wrapper.GetTasksId)
-	m.HandleFunc("PATCH /tasks/{id}", wrapper.PatchTasksId)
-	m.HandleFunc("POST /tasks/{id}/start", wrapper.PostTasksIdStart)
-	m.HandleFunc("POST /tasks/{id}/stop", wrapper.PostTasksIdStop)
-	m.HandleFunc("GET /users/", wrapper.GetUsers)
-	m.HandleFunc("POST /users/", wrapper.PostUsers)
-	m.HandleFunc("GET /users/current", wrapper.GetUsersCurrent)
-	m.HandleFunc("POST /users/{id}/report", wrapper.PostUsersIdReport)
-	m.HandleFunc("DELETE /users/{passportNumber}", wrapper.DeleteUsersPassportNumber)
-	m.HandleFunc("GET /users/{passportNumber}", wrapper.GetUsersPassportNumber)
-	m.HandleFunc("PATCH /users/{passportNumber}", wrapper.PatchUsersPassportNumber)
+	m.Handle("GET /tasks/", authenticated(wrapper.GetTasks))
+	m.Handle("POST /tasks/", authenticated(wrapper.PostTasks))
+	m.Handle("DELETE /tasks/{id}", authenticated(wrapper.DeleteTasksId))
+	m.Handle("GET /tasks/{id}", authenticated(wrapper.GetTasksId))
+	m.Handle("PATCH /tasks/{id}", authenticated(wrapper.PatchTasksId))
+	m.Handle("POST /tasks/{id}/start", authenticated(wrapper.PostTasksIdStart))
+	m.Handle("POST /tasks/{id}/stop", authenticated(wrapper.PostTasksIdStop))
+	m.Handle("GET /users/", authenticated(wrapper.GetUsers))
+	m.Handle("POST /users/", authenticated(wrapper.PostUsers))
+	m.Handle("GET /users/current", authenticated(wrapper.GetUsersCurrent))
+	m.Handle("POST /users/{id}/report", authenticated(wrapper.PostUsersIdReport))
+	m.Handle("DELETE /users/{passportNumber}", authenticated(wrapper.DeleteUsersPassportNumber))
+	m.Handle("GET /users/{passportNumber}", authenticated(wrapper.GetUsersPassportNumber))
+	m.Handle("PATCH /users/{passportNumber}", authenticated(wrapper.PatchUsersPassportNumber))
 
 	return m
 }
