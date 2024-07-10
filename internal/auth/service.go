@@ -22,15 +22,20 @@ type Token struct {
 	AccessToken string
 }
 
+type User struct {
+	ID int
+}
+
 var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
+	ErrInvalidAccessToken = errors.New("invalid access token")
 )
 
 func NewService(db *pgxpool.Pool) *Service {
 	return &Service{db: db}
 }
 
-func (s *Service) Auth(ctx context.Context, g *PasswordGrant) (*Token, error) {
+func (s *Service) Authorize(ctx context.Context, g *PasswordGrant) (*Token, error) {
 	rows, err := s.db.Query(ctx, `SELECT id FROM users WHERE passport_number = $1`, g.Username)
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to select user"), err)
@@ -53,4 +58,12 @@ func (s *Service) Auth(ctx context.Context, g *PasswordGrant) (*Token, error) {
 
 	// Pseudo-token generation that uses the user ID as the access token.
 	return &Token{AccessToken: strconv.Itoa(id)}, nil
+}
+
+func (s *Service) UserFromAccessToken(accessToken string) (*User, error) {
+	id, err := strconv.Atoi(accessToken)
+	if err != nil {
+		return nil, errors.Join(ErrInvalidAccessToken, err)
+	}
+	return &User{ID: id}, nil
 }

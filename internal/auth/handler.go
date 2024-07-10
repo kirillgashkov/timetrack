@@ -39,7 +39,7 @@ func (h *Handler) PostAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.service.Auth(
+	token, err := h.service.Authorize(
 		r.Context(),
 		&PasswordGrant{
 			Username: username,
