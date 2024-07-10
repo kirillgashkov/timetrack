@@ -3,6 +3,8 @@ package api
 import (
 	"net/http"
 
+	"github.com/kirillgashkov/timetrack/internal/auth"
+
 	"github.com/kirillgashkov/timetrack/internal/reporting"
 
 	"github.com/kirillgashkov/timetrack/internal/tracking"
@@ -14,12 +16,14 @@ import (
 	"github.com/kirillgashkov/timetrack/internal/user"
 )
 
+type authHandler = auth.Handler
 type reportingHandler = reporting.Handler
 type taskHandler = task.Handler
 type trackingHandler = tracking.Handler
 type userHandler = user.Handler
 
 type Handler struct {
+	*authHandler
 	*reportingHandler
 	*taskHandler
 	*trackingHandler
@@ -27,12 +31,14 @@ type Handler struct {
 }
 
 func NewHandler(
+	authService *auth.Service,
 	reportingService *reporting.Service,
 	taskService *task.Service,
 	trackingService *tracking.Service,
 	userService *user.Service,
 ) *Handler {
 	return &Handler{
+		authHandler:      auth.NewHandler(authService),
 		reportingHandler: reporting.NewHandler(reportingService),
 		taskHandler:      task.NewHandler(taskService),
 		trackingHandler:  tracking.NewHandler(trackingService),

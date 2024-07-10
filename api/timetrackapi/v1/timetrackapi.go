@@ -18,6 +18,16 @@ const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
+// Defines values for PasswordGrantGrantType.
+const (
+	Password PasswordGrantGrantType = "password"
+)
+
+// Defines values for TokenTokenType.
+const (
+	Bearer TokenTokenType = "Bearer"
+)
+
 // Error defines model for Error.
 type Error struct {
 	Message string `json:"message"`
@@ -27,6 +37,16 @@ type Error struct {
 type Health struct {
 	Status string `json:"status"`
 }
+
+// PasswordGrant Password grant (https://datatracker.ietf.org/doc/html/rfc6749#section-4.3).
+type PasswordGrant struct {
+	GrantType PasswordGrantGrantType `json:"grant_type"`
+	Password  string                 `json:"password"`
+	Username  string                 `json:"username"`
+}
+
+// PasswordGrantGrantType defines model for PasswordGrant.GrantType.
+type PasswordGrantGrantType string
 
 // ReportDuration defines model for ReportDuration.
 type ReportDuration struct {
@@ -61,6 +81,15 @@ type TaskCreate struct {
 type TaskUpdate struct {
 	Description *string `json:"description,omitempty"`
 }
+
+// Token Token (https://datatracker.ietf.org/doc/html/rfc6749#section-5.1).
+type Token struct {
+	AccessToken string         `json:"access_token"`
+	TokenType   TokenTokenType `json:"token_type"`
+}
+
+// TokenTokenType defines model for Token.TokenType.
+type TokenTokenType string
 
 // User defines model for User.
 type User struct {
@@ -99,6 +128,9 @@ type GetUsersParams struct {
 	Limit  *int      `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// PostAuthFormdataRequestBody defines body for PostAuth for application/x-www-form-urlencoded ContentType.
+type PostAuthFormdataRequestBody = PasswordGrant
+
 // PostTasksJSONRequestBody defines body for PostTasks for application/json ContentType.
 type PostTasksJSONRequestBody = TaskCreate
 
@@ -116,6 +148,9 @@ type PatchUsersPassportNumberJSONRequestBody = UserUpdate
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+
+	// (POST /auth)
+	PostAuth(w http.ResponseWriter, r *http.Request)
 
 	// (GET /health)
 	GetHealth(w http.ResponseWriter, r *http.Request)
@@ -171,6 +206,21 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// PostAuth operation middleware
+func (siw *ServerInterfaceWrapper) PostAuth(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostAuth(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
 
 // GetHealth operation middleware
 func (siw *ServerInterfaceWrapper) GetHealth(w http.ResponseWriter, r *http.Request) {
@@ -684,6 +734,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	m.HandleFunc("POST "+options.BaseURL+"/auth", wrapper.PostAuth)
 	m.HandleFunc("GET "+options.BaseURL+"/health", wrapper.GetHealth)
 	m.HandleFunc("GET "+options.BaseURL+"/tasks/", wrapper.GetTasks)
 	m.HandleFunc("POST "+options.BaseURL+"/tasks/", wrapper.PostTasks)

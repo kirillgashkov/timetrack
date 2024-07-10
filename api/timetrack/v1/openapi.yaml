@@ -5,6 +5,29 @@ info:
   version: 0.0.0
 
 paths:
+  /auth:
+    description: Get access token.
+    post:
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/PasswordGrant"
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Token"
+        "400":
+          description: Error.
+          content:
+            application/json:
+              schema:
+                  $ref: "#/components/schemas/Error"
+
+
   /health:
     get:
       responses:
@@ -615,3 +638,29 @@ components:
           $ref: "#/components/schemas/Task"
         duration:
           $ref: "#/components/schemas/ReportDuration"
+
+    PasswordGrant:
+      description: Password grant (https://datatracker.ietf.org/doc/html/rfc6749#section-4.3).
+      type: object
+      required: [grant_type, username, password]
+      properties:
+        grant_type:
+          type: string
+          enum: [password]
+        username:
+          type: string
+        password:
+          type: string
+          format: password
+
+    Token:
+      description: Token (https://datatracker.ietf.org/doc/html/rfc6749#section-5.1).
+      type: object
+      required: [access_token, token_type]
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          enum: [Bearer]
+
