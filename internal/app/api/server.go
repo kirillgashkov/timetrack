@@ -5,12 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/kirillgashkov/timetrack/internal/auth"
-
-	"github.com/kirillgashkov/timetrack/internal/reporting"
-
 	"github.com/kirillgashkov/timetrack/api/timetrackapi/v1"
 	"github.com/kirillgashkov/timetrack/internal/app/config"
+	"github.com/kirillgashkov/timetrack/internal/auth"
+	"github.com/kirillgashkov/timetrack/internal/reporting"
 	"github.com/kirillgashkov/timetrack/internal/task"
 	"github.com/kirillgashkov/timetrack/internal/tracking"
 	"github.com/kirillgashkov/timetrack/internal/user"

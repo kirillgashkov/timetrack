@@ -7,12 +7,10 @@ import (
 	"log/slog"
 
 	"github.com/jackc/pgerrcode"
-	"github.com/jackc/pgx/v5/pgconn"
-
 	"github.com/jackc/pgx/v5"
-	"github.com/kirillgashkov/timetrack/db/timetrackdb"
-
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kirillgashkov/timetrack/db/timetrackdb"
 )
 
 type Service struct {

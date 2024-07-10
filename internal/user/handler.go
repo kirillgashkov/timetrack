@@ -6,9 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/kirillgashkov/timetrack/internal/app/api/apiutil"
-
 	"github.com/kirillgashkov/timetrack/api/timetrackapi/v1"
+	"github.com/kirillgashkov/timetrack/internal/app/api/apiutil"
 )
 
 type Handler struct {
