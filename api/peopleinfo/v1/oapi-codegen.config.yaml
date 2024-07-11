@@ -2,6 +2,8 @@
 package: peopleinfoapi
 generate:
   client: true
+  # std-http-server is used to implement a mock server for the API.
+  std-http-server: true
   models: true
 # output is relative to package api because it has the go:generate directive.
 output: peopleinfoapi/v1/peopleinfoapi.go
