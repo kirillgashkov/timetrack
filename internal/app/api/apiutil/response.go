@@ -25,6 +25,10 @@ func MustWriteError(w http.ResponseWriter, m string, code int) {
 	MustWriteJSON(w, e, code)
 }
 
+func MustWriteForbidden(w http.ResponseWriter) {
+	MustWriteError(w, "forbidden", http.StatusForbidden)
+}
+
 func MustWriteInternalServerError(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusInternalServerError)
 	_, err := w.Write([]byte("internal server error"))

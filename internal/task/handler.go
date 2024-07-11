@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/kirillgashkov/timetrack/internal/auth"
+
 	"github.com/kirillgashkov/timetrack/api/timetrackapi/v1"
 	"github.com/kirillgashkov/timetrack/internal/app/api/apiutil"
 )
@@ -19,6 +21,10 @@ func NewHandler(service *Service) *Handler {
 
 // PostTasks handles "POST /tasks/".
 func (h *Handler) PostTasks(w http.ResponseWriter, r *http.Request) {
+	// For simplicity, we don't use user in the task domain, but we do use them
+	// in other domains.
+	_ = auth.MustUserFromContext(r.Context())
+
 	var taskCreate *timetrackapi.TaskCreate
 	if err := apiutil.ReadJSON(r, &taskCreate); err != nil {
 		apiutil.MustWriteError(w, "invalid request", http.StatusUnprocessableEntity)
@@ -37,6 +43,10 @@ func (h *Handler) PostTasks(w http.ResponseWriter, r *http.Request) {
 
 // GetTasks handles "GET /tasks/".
 func (h *Handler) GetTasks(w http.ResponseWriter, r *http.Request, params timetrackapi.GetTasksParams) {
+	// For simplicity, we don't use user in the task domain, but we do use them
+	// in other domains.
+	_ = auth.MustUserFromContext(r.Context())
+
 	offset := 0
 	if params.Offset != nil {
 		if *params.Offset < 0 {
@@ -72,6 +82,10 @@ func (h *Handler) GetTasks(w http.ResponseWriter, r *http.Request, params timetr
 //
 //nolint:revive
 func (h *Handler) GetTasksId(w http.ResponseWriter, r *http.Request, id int) {
+	// For simplicity, we don't use user in the task domain, but we do use them
+	// in other domains.
+	_ = auth.MustUserFromContext(r.Context())
+
 	t, err := h.service.Get(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
@@ -90,6 +104,10 @@ func (h *Handler) GetTasksId(w http.ResponseWriter, r *http.Request, id int) {
 //
 //nolint:revive
 func (h *Handler) PatchTasksId(w http.ResponseWriter, r *http.Request, id int) {
+	// For simplicity, we don't use user in the task domain, but we do use them
+	// in other domains.
+	_ = auth.MustUserFromContext(r.Context())
+
 	var taskUpdateAPI *timetrackapi.TaskUpdate
 	if err := apiutil.ReadJSON(r, &taskUpdateAPI); err != nil {
 		apiutil.MustWriteError(w, "invalid request", http.StatusUnprocessableEntity)
@@ -116,6 +134,10 @@ func (h *Handler) PatchTasksId(w http.ResponseWriter, r *http.Request, id int) {
 //
 //nolint:revive
 func (h *Handler) DeleteTasksId(w http.ResponseWriter, r *http.Request, id int) {
+	// For simplicity, we don't use user in the task domain, but we do use them
+	// in other domains.
+	_ = auth.MustUserFromContext(r.Context())
+
 	t, err := h.service.Delete(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {

@@ -3,6 +3,8 @@ package reporting
 import (
 	"net/http"
 
+	"github.com/kirillgashkov/timetrack/internal/auth"
+
 	"github.com/kirillgashkov/timetrack/api/timetrackapi/v1"
 	"github.com/kirillgashkov/timetrack/internal/app/api/apiutil"
 )
@@ -19,6 +21,12 @@ func NewHandler(service *Service) *Handler {
 //
 //nolint:revive
 func (h *Handler) PostUsersIdReport(w http.ResponseWriter, r *http.Request, id int) {
+	u := auth.MustUserFromContext(r.Context())
+	if u.ID != id {
+		apiutil.MustWriteForbidden(w)
+		return
+	}
+
 	var reportIn *timetrackapi.ReportIn
 	if err := apiutil.ReadJSON(r, &reportIn); err != nil {
 		apiutil.MustWriteError(w, "invalid request", http.StatusUnprocessableEntity)

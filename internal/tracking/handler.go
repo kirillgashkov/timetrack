@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/kirillgashkov/timetrack/internal/auth"
+
 	"github.com/kirillgashkov/timetrack/internal/app/api/apiutil"
 )
 
@@ -20,9 +22,9 @@ func NewHandler(service *Service) *Handler {
 //
 //nolint:revive
 func (h *Handler) PostTasksIdStart(w http.ResponseWriter, r *http.Request, id int) {
-	userID := 1 // TODO: use real user ID
+	u := auth.MustUserFromContext(r.Context())
 
-	err := h.service.StartTask(r.Context(), TaskID(id), UserID(userID))
+	err := h.service.StartTask(r.Context(), TaskID(id), UserID(u.ID))
 	if err != nil {
 		if errors.Is(err, ErrAlreadyStarted) {
 			apiutil.MustWriteError(w, "task already started", http.StatusBadRequest)
@@ -40,9 +42,9 @@ func (h *Handler) PostTasksIdStart(w http.ResponseWriter, r *http.Request, id in
 //
 //nolint:revive
 func (h *Handler) PostTasksIdStop(w http.ResponseWriter, r *http.Request, id int) {
-	userID := 1 // TODO: use real user ID
+	user := auth.MustUserFromContext(r.Context())
 
-	err := h.service.StopTask(r.Context(), TaskID(id), UserID(userID))
+	err := h.service.StopTask(r.Context(), TaskID(id), UserID(user.ID))
 	if err != nil {
 		if errors.Is(err, ErrNotStarted) {
 			apiutil.MustWriteError(w, "task not started", http.StatusBadRequest)
