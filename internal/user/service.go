@@ -3,7 +3,6 @@ package user
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"strconv"
 	"strings"
 
@@ -32,6 +31,7 @@ type Filter struct {
 }
 
 type Update struct {
+	PassportNumber  *string
 	Surname         *string
 	Name            *string
 	Patronymic      *string
@@ -76,7 +76,7 @@ func (s *Service) Create(ctx context.Context, passportNumber string) (*User, err
 		if errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
 			return nil, errors.Join(ErrAlreadyExists, err)
 		}
-		return nil, errors.Join(errors.New("failed to collect rows"), err)
+		return nil, errors.Join(errors.New("failed to collect user"), err)
 	}
 	return &u, nil
 }
@@ -100,31 +100,7 @@ func (s *Service) Get(ctx context.Context, id int) (*User, error) {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, errors.Join(ErrNotFound, err)
 		}
-		return nil, errors.Join(errors.New("failed to collect rows"), err)
-	}
-	return &u, nil
-}
-
-func (s *Service) GetByPassportNumber(ctx context.Context, passportNumber string) (*User, error) {
-	rows, err := s.db.Query(
-		ctx,
-		`
-			SELECT id, passport_number, surname, name, patronymic, address
-			FROM users
-			WHERE passport_number = $1
-		`,
-		passportNumber,
-	)
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to select user"), err)
-	}
-
-	u, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[User])
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, errors.Join(ErrNotFound, err)
-		}
-		return nil, errors.Join(errors.New("failed to collect rows"), err)
+		return nil, errors.Join(errors.New("failed to collect user"), err)
 	}
 	return &u, nil
 }
@@ -132,7 +108,6 @@ func (s *Service) GetByPassportNumber(ctx context.Context, passportNumber string
 func (s *Service) List(ctx context.Context, filter *Filter, offset, limit int) ([]User, error) {
 	query, args := buildSelectQuery(filter, limit, offset)
 
-	slog.Debug("executing query", "query", query, "args", args)
 	rows, err := s.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to select users"), err)
@@ -140,26 +115,27 @@ func (s *Service) List(ctx context.Context, filter *Filter, offset, limit int) (
 
 	users, err := pgx.CollectRows(rows, pgx.RowToStructByName[User])
 	if err != nil {
-		return nil, errors.Join(errors.New("failed to collect rows"), err)
+		return nil, errors.Join(errors.New("failed to collect users"), err)
 	}
-	slog.Debug("collected rows", "rows", len(users))
 
 	return users, nil
 }
 
-func (s *Service) UpdateByPassportNumber(ctx context.Context, passportNumber string, update *Update) (*User, error) {
+func (s *Service) Update(ctx context.Context, id int, update *Update) (*User, error) {
 	rows, err := s.db.Query(
 		ctx,
 		`
 			UPDATE users
-			SET surname = COALESCE($2, surname),
-				name = COALESCE($3, name),
-				patronymic = CASE WHEN $5 THEN $4 ELSE COALESCE($4, patronymic) END,
-				address = COALESCE($6, address)
-			WHERE passport_number = $1
+			SET passport_number = COALESCE($2, passport_number),
+				surname = COALESCE($3, surname),
+				name = COALESCE($4, name),
+				patronymic = CASE WHEN $6 THEN $5 ELSE COALESCE($5, patronymic) END,
+				address = COALESCE($7, address)
+			WHERE id = $1
 			RETURNING id, passport_number, surname, name, patronymic, address
 		`,
-		passportNumber,
+		id,
+		update.PassportNumber,
 		update.Surname,
 		update.Name,
 		update.Patronymic,
@@ -180,15 +156,15 @@ func (s *Service) UpdateByPassportNumber(ctx context.Context, passportNumber str
 	return &u, nil
 }
 
-func (s *Service) DeleteByPassportNumber(ctx context.Context, passportNumber string) (*User, error) {
+func (s *Service) Delete(ctx context.Context, id int) (*User, error) {
 	rows, err := s.db.Query(
 		ctx,
 		`
 			DELETE FROM users
-			WHERE passport_number = $1
+			WHERE id = $1
 			RETURNING id, passport_number, surname, name, patronymic, address
 		`,
-		passportNumber,
+		id,
 	)
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to delete user"), err)
@@ -199,7 +175,7 @@ func (s *Service) DeleteByPassportNumber(ctx context.Context, passportNumber str
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, errors.Join(ErrNotFound, err)
 		}
-		return nil, errors.Join(errors.New("failed to collect rows"), err)
+		return nil, errors.Join(errors.New("failed to collect user"), err)
 	}
 	return &u, nil
 }

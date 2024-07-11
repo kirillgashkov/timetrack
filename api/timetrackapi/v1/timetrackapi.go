@@ -108,10 +108,11 @@ type UserCreate struct {
 
 // UserUpdate defines model for UserUpdate.
 type UserUpdate struct {
-	Address    *string `json:"address,omitempty"`
-	Name       *string `json:"name,omitempty"`
-	Patronymic *string `json:"patronymic,omitempty"`
-	Surname    *string `json:"surname,omitempty"`
+	Address        *string `json:"address,omitempty"`
+	Name           *string `json:"name,omitempty"`
+	PassportNumber *string `json:"passportNumber,omitempty"`
+	Patronymic     *string `json:"patronymic,omitempty"`
+	Surname        *string `json:"surname,omitempty"`
 }
 
 // GetTasksParams defines parameters for GetTasks.
@@ -140,11 +141,11 @@ type PatchTasksIdJSONRequestBody = TaskUpdate
 // PostUsersJSONRequestBody defines body for PostUsers for application/json ContentType.
 type PostUsersJSONRequestBody = UserCreate
 
+// PatchUsersIdJSONRequestBody defines body for PatchUsersId for application/json ContentType.
+type PatchUsersIdJSONRequestBody = UserUpdate
+
 // PostUsersIdReportJSONRequestBody defines body for PostUsersIdReport for application/json ContentType.
 type PostUsersIdReportJSONRequestBody = ReportIn
-
-// PatchUsersPassportNumberJSONRequestBody defines body for PatchUsersPassportNumber for application/json ContentType.
-type PatchUsersPassportNumberJSONRequestBody = UserUpdate
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -185,17 +186,17 @@ type ServerInterface interface {
 	// (GET /users/current)
 	GetUsersCurrent(w http.ResponseWriter, r *http.Request)
 
+	// (DELETE /users/{id})
+	DeleteUsersId(w http.ResponseWriter, r *http.Request, id int)
+
+	// (GET /users/{id})
+	GetUsersId(w http.ResponseWriter, r *http.Request, id int)
+
+	// (PATCH /users/{id})
+	PatchUsersId(w http.ResponseWriter, r *http.Request, id int)
+
 	// (POST /users/{id}/report)
 	PostUsersIdReport(w http.ResponseWriter, r *http.Request, id int)
-
-	// (DELETE /users/{passportNumber})
-	DeleteUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string)
-
-	// (GET /users/{passportNumber})
-	GetUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string)
-
-	// (PATCH /users/{passportNumber})
-	PatchUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -508,6 +509,90 @@ func (siw *ServerInterfaceWrapper) GetUsersCurrent(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
+// DeleteUsersId operation middleware
+func (siw *ServerInterfaceWrapper) DeleteUsersId(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteUsersId(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetUsersId operation middleware
+func (siw *ServerInterfaceWrapper) GetUsersId(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUsersId(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// PatchUsersId operation middleware
+func (siw *ServerInterfaceWrapper) PatchUsersId(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PatchUsersId(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
 // PostUsersIdReport operation middleware
 func (siw *ServerInterfaceWrapper) PostUsersIdReport(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -527,90 +612,6 @@ func (siw *ServerInterfaceWrapper) PostUsersIdReport(w http.ResponseWriter, r *h
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PostUsersIdReport(w, r, id)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// DeleteUsersPassportNumber operation middleware
-func (siw *ServerInterfaceWrapper) DeleteUsersPassportNumber(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "passportNumber" -------------
-	var passportNumber string
-
-	err = runtime.BindStyledParameterWithOptions("simple", "passportNumber", r.PathValue("passportNumber"), &passportNumber, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "passportNumber", Err: err})
-		return
-	}
-
-	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.DeleteUsersPassportNumber(w, r, passportNumber)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// GetUsersPassportNumber operation middleware
-func (siw *ServerInterfaceWrapper) GetUsersPassportNumber(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "passportNumber" -------------
-	var passportNumber string
-
-	err = runtime.BindStyledParameterWithOptions("simple", "passportNumber", r.PathValue("passportNumber"), &passportNumber, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "passportNumber", Err: err})
-		return
-	}
-
-	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetUsersPassportNumber(w, r, passportNumber)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// PatchUsersPassportNumber operation middleware
-func (siw *ServerInterfaceWrapper) PatchUsersPassportNumber(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "passportNumber" -------------
-	var passportNumber string
-
-	err = runtime.BindStyledParameterWithOptions("simple", "passportNumber", r.PathValue("passportNumber"), &passportNumber, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "passportNumber", Err: err})
-		return
-	}
-
-	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PatchUsersPassportNumber(w, r, passportNumber)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -746,10 +747,10 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("GET "+options.BaseURL+"/users/", wrapper.GetUsers)
 	m.HandleFunc("POST "+options.BaseURL+"/users/", wrapper.PostUsers)
 	m.HandleFunc("GET "+options.BaseURL+"/users/current", wrapper.GetUsersCurrent)
+	m.HandleFunc("DELETE "+options.BaseURL+"/users/{id}", wrapper.DeleteUsersId)
+	m.HandleFunc("GET "+options.BaseURL+"/users/{id}", wrapper.GetUsersId)
+	m.HandleFunc("PATCH "+options.BaseURL+"/users/{id}", wrapper.PatchUsersId)
 	m.HandleFunc("POST "+options.BaseURL+"/users/{id}/report", wrapper.PostUsersIdReport)
-	m.HandleFunc("DELETE "+options.BaseURL+"/users/{passportNumber}", wrapper.DeleteUsersPassportNumber)
-	m.HandleFunc("GET "+options.BaseURL+"/users/{passportNumber}", wrapper.GetUsersPassportNumber)
-	m.HandleFunc("PATCH "+options.BaseURL+"/users/{passportNumber}", wrapper.PatchUsersPassportNumber)
 
 	return m
 }

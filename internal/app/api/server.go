@@ -75,9 +75,9 @@ func newServeMux(si timetrackapi.ServerInterface, authMiddleware *auth.Middlewar
 	m.Handle("POST /users/", authenticated(wrapper.PostUsers))
 	m.Handle("GET /users/current", authenticated(wrapper.GetUsersCurrent))
 	m.Handle("POST /users/{id}/report", authenticated(wrapper.PostUsersIdReport))
-	m.Handle("DELETE /users/{passportNumber}", authenticated(wrapper.DeleteUsersPassportNumber))
-	m.Handle("GET /users/{passportNumber}", authenticated(wrapper.GetUsersPassportNumber))
-	m.Handle("PATCH /users/{passportNumber}", authenticated(wrapper.PatchUsersPassportNumber))
+	m.Handle("DELETE /users/{id}", authenticated(wrapper.DeleteUsersId))
+	m.Handle("GET /users/{id}", authenticated(wrapper.GetUsersId))
+	m.Handle("PATCH /users/{id}", authenticated(wrapper.PatchUsersId))
 
 	return m
 }
