@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/kirillgashkov/timetrack/internal/auth"
+
 	"github.com/kirillgashkov/timetrack/api/timetrackapi/v1"
 	"github.com/kirillgashkov/timetrack/internal/app/api/apiutil"
 )
@@ -18,6 +20,7 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
+// PostUsers handles "POST /users".
 func (h *Handler) PostUsers(w http.ResponseWriter, r *http.Request) {
 	var userCreate *timetrackapi.UserCreate
 	if err := apiutil.ReadJSON(r, &userCreate); err != nil {
@@ -40,9 +43,10 @@ func (h *Handler) PostUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	apiutil.MustWriteJSON(w, userToAPI(u), http.StatusOK)
+	apiutil.MustWriteJSON(w, toUserAPI(u), http.StatusOK)
 }
 
+// GetUsers handles "GET /users".
 func (h *Handler) GetUsers(w http.ResponseWriter, r *http.Request, params timetrackapi.GetUsersParams) {
 	filter := &Filter{}
 	if params.Filter != nil {
@@ -94,20 +98,45 @@ func (h *Handler) GetUsers(w http.ResponseWriter, r *http.Request, params timetr
 		return
 	}
 
-	apiUsers := make([]*timetrackapi.User, 0, len(users))
+	usersAPI := make([]*timetrackapi.User, 0, len(users))
 	for _, u := range users {
-		apiUsers = append(apiUsers, userToAPI(&u))
+		usersAPI = append(usersAPI, toUserAPI(&u))
 	}
-	apiutil.MustWriteJSON(w, apiUsers, http.StatusOK)
+	apiutil.MustWriteJSON(w, usersAPI, http.StatusOK)
 }
 
-func (h *Handler) GetUsersCurrent(http.ResponseWriter, *http.Request) {
-	panic("not implemented")
+// GetUsersCurrent handles "GET /users/current".
+func (h *Handler) GetUsersCurrent(w http.ResponseWriter, r *http.Request) {
+	authUser := auth.MustUserFromContext(r.Context())
+
+	u, err := h.service.Get(r.Context(), authUser.ID)
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			apiutil.MustWriteError(w, "user not found", http.StatusNotFound)
+			return
+		}
+		slog.Error("failed to get user", "error", err)
+		apiutil.MustWriteInternalServerError(w)
+		return
+	}
+
+	apiutil.MustWriteJSON(w, toUserAPI(u), http.StatusOK)
 }
 
 func (h *Handler) PatchUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string) {
+	authenticatedContextUser := auth.MustUserFromContext(r.Context())
+	authenticatedUser, err := h.service.Get(r.Context(), authenticatedContextUser.ID)
+	if err != nil {
+		apiutil.MustWriteForbidden(w)
+		return
+	}
+	if authenticatedUser.PassportNumber != passportNumber {
+		apiutil.MustWriteForbidden(w)
+		return
+	}
+
 	var userUpdate *timetrackapi.UserUpdate
-	if err := apiutil.ReadJSON(r, &userUpdate); err != nil {
+	if err = apiutil.ReadJSON(r, &userUpdate); err != nil {
 		apiutil.MustWriteError(w, "invalid request", http.StatusUnprocessableEntity)
 		return
 	}
@@ -128,10 +157,22 @@ func (h *Handler) PatchUsersPassportNumber(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	apiutil.MustWriteJSON(w, userToAPI(u), http.StatusOK)
+	apiutil.MustWriteJSON(w, toUserAPI(u), http.StatusOK)
 }
 
+// DeleteUsersPassportNumber handles "DELETE /users/{passport_number}".
 func (h *Handler) DeleteUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string) {
+	authenticatedContextUser := auth.MustUserFromContext(r.Context())
+	authenticatedUser, err := h.service.Get(r.Context(), authenticatedContextUser.ID)
+	if err != nil {
+		apiutil.MustWriteForbidden(w)
+		return
+	}
+	if authenticatedUser.PassportNumber != passportNumber {
+		apiutil.MustWriteForbidden(w)
+		return
+	}
+
 	u, err := h.service.DeleteByPassportNumber(r.Context(), passportNumber)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
@@ -143,9 +184,10 @@ func (h *Handler) DeleteUsersPassportNumber(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	apiutil.MustWriteJSON(w, userToAPI(u), http.StatusOK)
+	apiutil.MustWriteJSON(w, toUserAPI(u), http.StatusOK)
 }
 
+// GetUsersPassportNumber handles "GET /users/{passport_number}".
 func (h *Handler) GetUsersPassportNumber(w http.ResponseWriter, r *http.Request, passportNumber string) {
 	u, err := h.service.GetByPassportNumber(r.Context(), passportNumber)
 	if err != nil {
@@ -158,10 +200,15 @@ func (h *Handler) GetUsersPassportNumber(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	apiutil.MustWriteJSON(w, userToAPI(u), http.StatusOK)
+	apiutil.MustWriteJSON(w, toUserAPI(u), http.StatusOK)
 }
 
-func userToAPI(u *User) *timetrackapi.User {
+// toUserAPI converts a user domain object to a user API object.
+//
+// If we had user passwords or other sensitive information we would filter it
+// from output models. Passport number is considered sensitive information, but
+// it is not filtered because it serves as a username (per app requirements).
+func toUserAPI(u *User) *timetrackapi.User {
 	return &timetrackapi.User{
 		Id:             u.ID,
 		PassportNumber: u.PassportNumber,

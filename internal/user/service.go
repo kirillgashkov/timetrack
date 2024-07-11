@@ -81,6 +81,30 @@ func (s *Service) Create(ctx context.Context, passportNumber string) (*User, err
 	return &u, nil
 }
 
+func (s *Service) Get(ctx context.Context, id int) (*User, error) {
+	rows, err := s.db.Query(
+		ctx,
+		`
+			SELECT id, passport_number, surname, name, patronymic, address
+			FROM users
+			WHERE id = $1
+		`,
+		id,
+	)
+	if err != nil {
+		return nil, errors.Join(errors.New("failed to select user"), err)
+	}
+
+	u, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[User])
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errors.Join(ErrNotFound, err)
+		}
+		return nil, errors.Join(errors.New("failed to collect rows"), err)
+	}
+	return &u, nil
+}
+
 func (s *Service) GetByPassportNumber(ctx context.Context, passportNumber string) (*User, error) {
 	rows, err := s.db.Query(
 		ctx,
