@@ -42,6 +42,11 @@ func (h *Handler) PostUsers(w http.ResponseWriter, r *http.Request) {
 			apiutil.MustWriteError(w, "passport number not issued, expired, or revoked", http.StatusUnprocessableEntity)
 			return
 		}
+		if errors.Is(err, ErrPeopleInfoUnavailable) {
+			slog.Error("people info service is unavailable", "error", err)
+			apiutil.MustWriteError(w, "service unavailable, try again later", http.StatusServiceUnavailable)
+			return
+		}
 		if errors.Is(err, ErrAlreadyExists) {
 			apiutil.MustWriteError(w, "user already exists", http.StatusBadRequest)
 			return

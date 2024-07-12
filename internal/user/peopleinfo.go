@@ -59,7 +59,7 @@ func (s *PeopleInfoServiceReal) Get(ctx context.Context, passportSeries int, pas
 
 	resp, err := s.client.GetInfo(ctx, peopleInfoParams)
 	if err != nil {
-		return nil, errors.Join(errors.New("failed to send request for people info"), err)
+		return nil, errors.Join(errors.New("failed to send request for people info"), ErrPeopleInfoUnavailable, err)
 	}
 	if resp.StatusCode != http.StatusOK {
 		// Per assignment, the PeopleInfo service only responds with 400 Bad
@@ -67,15 +67,15 @@ func (s *PeopleInfoServiceReal) Get(ctx context.Context, passportSeries int, pas
 		if resp.StatusCode == http.StatusBadRequest {
 			return nil, ErrPeopleInfoNotFound
 		}
-		return nil, errors.New("people info request failed with status " + resp.Status)
+		return nil, errors.Join(errors.New("people info request failed with status "+resp.Status), ErrPeopleInfoUnavailable)
 	}
 
 	getInfoResponse, err := peopleinfoapi.ParseGetInfoResponse(resp)
 	if err != nil {
-		return nil, errors.Join(errors.New("failed to parse people info response"), err)
+		return nil, errors.Join(errors.New("failed to parse people info response"), ErrPeopleInfoUnavailable, err)
 	}
 	if getInfoResponse.JSON200 == nil {
-		return nil, errors.New("people info response JSON is empty")
+		return nil, errors.Join(errors.New("people info response JSON is empty"), ErrPeopleInfoUnavailable)
 	}
 
 	peopleInfo := getInfoResponse.JSON200

@@ -52,6 +52,7 @@ var (
 	ErrAlreadyExists         = errors.New("user already exists")
 	ErrNotFound              = errors.New("user not found")
 	ErrInvalidPassportNumber = errors.New("invalid passport number")
+	ErrPeopleInfoUnavailable = errors.New("people info service is unavailable")
 )
 
 func (s *Service) Create(ctx context.Context, passportNumber string) (*User, error) {
@@ -61,7 +62,7 @@ func (s *Service) Create(ctx context.Context, passportNumber string) (*User, err
 	}
 	info, err := s.peopleInfoService.Get(ctx, series, number)
 	if err != nil {
-		return nil, errors.Join(errors.New("failed to get people info"), err)
+		return nil, err
 	}
 
 	rows, err := s.db.Query(
