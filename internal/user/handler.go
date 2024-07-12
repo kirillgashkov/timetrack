@@ -34,6 +34,10 @@ func (h *Handler) PostUsers(w http.ResponseWriter, r *http.Request) {
 
 	u, err := h.service.Create(r.Context(), userCreate.PassportNumber)
 	if err != nil {
+		if errors.Is(err, ErrInvalidPassportNumber) {
+			apiutil.MustWriteError(w, "invalid passport number", http.StatusUnprocessableEntity)
+			return
+		}
 		if errors.Is(err, ErrAlreadyExists) {
 			apiutil.MustWriteError(w, "user already exists", http.StatusBadRequest)
 			return
