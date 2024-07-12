@@ -12,9 +12,10 @@ const (
 )
 
 type Config struct {
-	Mode     string `env:"APP_MODE" envDefault:"development"`
-	Server   ServerConfig
-	Database DatabaseConfig
+	Mode                string `env:"APP_MODE" envDefault:"development"`
+	Server              ServerConfig
+	Database            DatabaseConfig
+	PeopleInfoServerURL string `env:"APP_PEOPLE_INFO_SERVER_URL,required"`
 }
 
 type ServerConfig struct {

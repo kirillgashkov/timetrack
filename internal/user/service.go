@@ -40,19 +40,30 @@ type Update struct {
 }
 
 type Service struct {
-	db *pgxpool.Pool
+	db                *pgxpool.Pool
+	peopleInfoService PeopleInfoService
 }
 
-func NewService(db *pgxpool.Pool) *Service {
-	return &Service{db: db}
+func NewService(db *pgxpool.Pool, peopleInfoService PeopleInfoService) *Service {
+	return &Service{db: db, peopleInfoService: peopleInfoService}
 }
 
 var (
-	ErrAlreadyExists = errors.New("user already exists")
-	ErrNotFound      = errors.New("user not found")
+	ErrAlreadyExists         = errors.New("user already exists")
+	ErrNotFound              = errors.New("user not found")
+	ErrInvalidPassportNumber = errors.New("invalid passport number")
 )
 
 func (s *Service) Create(ctx context.Context, passportNumber string) (*User, error) {
+	series, number, err := parsePassportNumber(passportNumber)
+	if err != nil {
+		return nil, errors.Join(ErrInvalidPassportNumber, err)
+	}
+	info, err := s.peopleInfoService.Get(ctx, series, number)
+	if err != nil {
+		return nil, errors.Join(errors.New("failed to get people info"), err)
+	}
+
 	rows, err := s.db.Query(
 		ctx,
 		`
@@ -61,10 +72,10 @@ func (s *Service) Create(ctx context.Context, passportNumber string) (*User, err
 			RETURNING id, passport_number, surname, name, patronymic, address
 		`,
 		passportNumber,
-		"some surname",
-		"some name",
-		"some patronymic",
-		"some address",
+		info.Surname,
+		info.Name,
+		info.Patronymic,
+		info.Address,
 	)
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to insert user"), err)
@@ -232,6 +243,27 @@ func buildSelectQuery(filter *Filter, limit, offset int) (string, []any) {
 	args = append(args, limit, offset)
 
 	return baseQuery, args
+}
+
+// parsePassportNumber parses a passport number string into a series and a
+// number.
+func parsePassportNumber(passportNumber string) (int, int, error) {
+	parts := strings.Split(passportNumber, " ")
+	if len(parts) != 2 {
+		return 0, 0, errors.New("invalid passport number")
+	}
+
+	series, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return 0, 0, errors.Join(errors.New("failed to parse passport series"), err)
+	}
+
+	number, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return 0, 0, errors.Join(errors.New("failed to parse passport number"), err)
+	}
+
+	return series, number, nil
 }
 
 func itoa(i int) string {

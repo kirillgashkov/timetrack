@@ -72,7 +72,7 @@ func newServeMux(si timetrackapi.ServerInterface, authMiddleware *auth.Middlewar
 	m.Handle("POST /tasks/{id}/start", authenticated(wrapper.PostTasksIdStart))
 	m.Handle("POST /tasks/{id}/stop", authenticated(wrapper.PostTasksIdStop))
 	m.Handle("GET /users/", authenticated(wrapper.GetUsers))
-	m.Handle("POST /users/", authenticated(wrapper.PostUsers))
+	m.HandleFunc("POST /users/", wrapper.PostUsers)
 	m.Handle("GET /users/current", authenticated(wrapper.GetUsersCurrent))
 	m.Handle("POST /users/{id}/report", authenticated(wrapper.PostUsersIdReport))
 	m.Handle("DELETE /users/{id}", authenticated(wrapper.DeleteUsersId))

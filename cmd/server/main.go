@@ -44,11 +44,16 @@ func mainErr() error {
 	}
 	defer db.Close()
 
+	peopleInfoService, err := user.NewPeopleInfoServiceReal(cfg.PeopleInfoServerURL, &http.Client{})
+	if err != nil {
+		return errors.Join(errors.New("failed to create people info"), err)
+	}
+
 	authService := auth.NewService(db)
 	reportingService := reporting.NewService(db)
 	taskService := task.NewService(db)
 	trackingService := tracking.NewService(db)
-	userService := user.NewService(db)
+	userService := user.NewService(db, peopleInfoService)
 
 	srv, err := api.NewServer(
 		&cfg.Server, authService, reportingService, taskService, trackingService, userService,
