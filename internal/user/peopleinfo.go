@@ -21,6 +21,14 @@ type PeopleInfoService interface {
 
 type PeopleInfoServiceMock struct{}
 
+type PeopleInfoServiceReal struct {
+	client *peopleinfoapi.Client
+}
+
+var (
+	ErrPeopleInfoNotFound = errors.New("people info not found")
+)
+
 func (s *PeopleInfoServiceMock) Get(_ context.Context, _ int, passportNumber int) (*PeopleInfo, error) {
 	var patronymic *string
 	if passportNumber%7 == 0 {
@@ -34,10 +42,6 @@ func (s *PeopleInfoServiceMock) Get(_ context.Context, _ int, passportNumber int
 		Surname:    "Ivanov",
 		Address:    "Ivanovskaya st., 1",
 	}, nil
-}
-
-type PeopleInfoServiceReal struct {
-	client *peopleinfoapi.Client
 }
 
 func NewPeopleInfoServiceReal(serverURL string, httpClient *http.Client) (*PeopleInfoServiceReal, error) {
@@ -58,6 +62,11 @@ func (s *PeopleInfoServiceReal) Get(ctx context.Context, passportSeries int, pas
 		return nil, errors.Join(errors.New("failed to send request for people info"), err)
 	}
 	if resp.StatusCode != http.StatusOK {
+		// Per assignment, the PeopleInfo service only responds with 400 Bad
+		// Request when something is wrong.
+		if resp.StatusCode == http.StatusBadRequest {
+			return nil, ErrPeopleInfoNotFound
+		}
 		return nil, errors.New("people info request failed with status " + resp.Status)
 	}
 

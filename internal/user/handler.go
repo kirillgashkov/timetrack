@@ -38,6 +38,10 @@ func (h *Handler) PostUsers(w http.ResponseWriter, r *http.Request) {
 			apiutil.MustWriteError(w, "invalid passport number", http.StatusUnprocessableEntity)
 			return
 		}
+		if errors.Is(err, ErrPeopleInfoNotFound) {
+			apiutil.MustWriteError(w, "passport number not issued, expired, or revoked", http.StatusUnprocessableEntity)
+			return
+		}
 		if errors.Is(err, ErrAlreadyExists) {
 			apiutil.MustWriteError(w, "user already exists", http.StatusBadRequest)
 			return
