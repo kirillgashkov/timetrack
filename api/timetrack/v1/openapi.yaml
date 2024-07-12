@@ -8,6 +8,7 @@ paths:
   /auth:
     description: Get access token.
     post:
+      tags: [auth]
       requestBody:
         content:
           application/x-www-form-urlencoded:
@@ -30,6 +31,7 @@ paths:
 
   /health:
     get:
+      tags: [other]
       responses:
         "200":
           description: OK.
@@ -40,6 +42,7 @@ paths:
 
   /users/:
     post:
+      tags: [users]
       requestBody:
         content:
           application/json:
@@ -64,8 +67,15 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "503":
+          description: Service unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
     get:
+      tags: [users]
       security:
           - bearerAuth: []
       parameters:
@@ -119,6 +129,7 @@ paths:
 
   /users/{id}:
     get:
+      tags: [users]
       security:
         - bearerAuth: [ ]
       parameters:
@@ -154,6 +165,7 @@ paths:
                 $ref: "#/components/schemas/Error"
 
     patch:
+      tags: [users]
       security:
         - bearerAuth: [ ]
       parameters:
@@ -194,6 +206,7 @@ paths:
                 $ref: "#/components/schemas/Error"
 
     delete:
+      tags: [users]
       security:
         - bearerAuth: [ ]
       parameters:
@@ -231,6 +244,7 @@ paths:
 
   /users/current:
     get:
+      tags: [users]
       security:
         - bearerAuth: []
       responses:
@@ -249,6 +263,7 @@ paths:
 
   /tasks/:
     post:
+      tags: [tasks]
       requestBody:
         content:
           application/json:
@@ -275,6 +290,7 @@ paths:
                 $ref: "#/components/schemas/Error"
 
     get:
+      tags: [tasks]
       security:
         - bearerAuth: []
       parameters:
@@ -315,6 +331,7 @@ paths:
 
   /tasks/{id}:
     get:
+      tags: [tasks]
       security:
         - bearerAuth: []
       parameters:
@@ -350,6 +367,7 @@ paths:
                 $ref: "#/components/schemas/Error"
 
     patch:
+      tags: [tasks]
       security:
         - bearerAuth: []
       parameters:
@@ -390,6 +408,7 @@ paths:
                 $ref: "#/components/schemas/Error"
 
     delete:
+      tags: [tasks]
       security:
         - bearerAuth: []
       parameters:
@@ -426,6 +445,7 @@ paths:
 
   /tasks/{id}/start:
     post:
+      tags: [tracking]
       security:
         - bearerAuth: []
       parameters:
@@ -458,6 +478,7 @@ paths:
 
   /tasks/{id}/stop:
     post:
+      tags: [tracking]
       security:
         - bearerAuth: []
       parameters:
@@ -490,6 +511,7 @@ paths:
 
   /users/{id}/report:
     post:
+      tags: [reporting]
       security:
         - bearerAuth: []
       parameters:

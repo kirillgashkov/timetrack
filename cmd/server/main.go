@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/kirillgashkov/timetrack/internal/app/api"
 	"github.com/kirillgashkov/timetrack/internal/app/config"
@@ -44,7 +45,9 @@ func mainErr() error {
 	}
 	defer db.Close()
 
-	peopleInfoService, err := user.NewPeopleInfoServiceReal(cfg.PeopleInfoServerURL, &http.Client{})
+	peopleInfoService, err := user.NewPeopleInfoServiceReal(cfg.PeopleInfoServerURL, &http.Client{
+		Timeout: time.Duration(cfg.PeopleInfoServerTimeout) * time.Second,
+	})
 	if err != nil {
 		return errors.Join(errors.New("failed to create people info"), err)
 	}
