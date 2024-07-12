@@ -258,10 +258,16 @@ func parsePassportNumber(passportNumber string) (int, int, error) {
 	if err != nil {
 		return 0, 0, errors.Join(errors.New("failed to parse passport series"), err)
 	}
+	if series < 0 || series > 9999 {
+		return 0, 0, errors.New("passport series out of range")
+	}
 
 	number, err := strconv.Atoi(parts[1])
 	if err != nil {
 		return 0, 0, errors.Join(errors.New("failed to parse passport number"), err)
+	}
+	if number < 0 || number > 999999 {
+		return 0, 0, errors.New("passport number out of range")
 	}
 
 	return series, number, nil
