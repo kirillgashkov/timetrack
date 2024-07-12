@@ -37,7 +37,8 @@ func (s *Service) Report(ctx context.Context, userID int, from, to time.Time) ([
 				  (works.started_at >= $2 AND works.started_at <= $3)
 				  OR (works.stopped_at >= $2 AND works.stopped_at <= $3)
 			  )
-			GROUP BY tasks.id;
+			GROUP BY tasks.id
+			ORDER BY duration DESC, task_id
 		`,
 		userID,
 		from,
