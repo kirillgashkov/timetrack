@@ -183,10 +183,16 @@ func (h *handler) GetInfo(w http.ResponseWriter, _ *http.Request, params peoplei
 		return
 	}
 
-	// If passport serie is 404, return "404 Not Found".
+	// If passport serie is 400, assume that the external service won't find a
+	// valid passport and return an error. The 404 Not Found would fit better
+	// here but the assignment requires to return 400 Bad Request.
 
-	if params.PassportSerie == 404 {
-		mustWriteJSON(w, map[string]string{"error": "info not found"}, http.StatusNotFound)
+	if params.PassportSerie == 400 {
+		mustWriteJSON(
+			w,
+			map[string]string{"error": "passport not issued, expired or revoked"},
+			http.StatusBadRequest,
+		)
 		return
 	}
 
