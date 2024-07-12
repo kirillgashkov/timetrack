@@ -11,7 +11,7 @@ It was created as a test assignment for a job application in July 2024.
 
 - **Track time**
 
-  Start and stop timers for tasks quickly and safely, even with many users at the same time.
+  Start and stop timers for tasks <mark>quickly</mark> and <mark>safely</mark>, even with many users at the same time.
 
 - **Generate reports**
 
@@ -23,8 +23,11 @@ It was created as a test assignment for a job application in July 2024.
 
 - **Manage users**
 
-  Register users using their national ID number, view all users with filtering options and pagination, and update or
-  delete user information as needed.
+  Register users using their national ID number, view all users with <mark>filtering</mark> options and
+  <mark>pagination</mark>, and update or delete user information as needed.
 
   When registering a user, the application will try to fetch additional information about the user from a (pseudo-)
-  external service.
+  <mark>external service</mark>.
+
+  The application uses <mark>token-based authentication</mark> to ensure that only registered users can access the
+  application. For simplicity, the application uses user IDs as tokens.
