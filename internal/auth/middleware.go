@@ -13,10 +13,6 @@ type Middleware struct {
 	service *Service
 }
 
-type userContextKeyType struct{}
-
-var userContextKey = userContextKeyType{}
-
 func NewMiddleware(service *Service) *Middleware {
 	return &Middleware{service: service}
 }
@@ -52,6 +48,10 @@ func (m *Middleware) Authenticated(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+type userContextKeyType struct{}
+
+var userContextKey = userContextKeyType{}
 
 func ContextWithUser(ctx context.Context, user *User) context.Context {
 	return context.WithValue(ctx, userContextKey, user)
