@@ -39,13 +39,21 @@ type Update struct {
 	Address         *string
 }
 
-type Service struct {
+type Service interface {
+	Create(ctx context.Context, passportNumber string) (*User, error)
+	Get(ctx context.Context, id int) (*User, error)
+	List(ctx context.Context, filter *Filter, offset, limit int) ([]User, error)
+	Update(ctx context.Context, id int, update *Update) (*User, error)
+	Delete(ctx context.Context, id int) (*User, error)
+}
+
+type ServiceImpl struct {
 	db                *pgxpool.Pool
 	peopleInfoService PeopleInfoService
 }
 
-func NewService(db *pgxpool.Pool, peopleInfoService PeopleInfoService) *Service {
-	return &Service{db: db, peopleInfoService: peopleInfoService}
+func NewServiceImpl(db *pgxpool.Pool, peopleInfoService PeopleInfoService) *ServiceImpl {
+	return &ServiceImpl{db: db, peopleInfoService: peopleInfoService}
 }
 
 var (
@@ -55,7 +63,7 @@ var (
 	ErrPeopleInfoUnavailable = errors.New("people info service is unavailable")
 )
 
-func (s *Service) Create(ctx context.Context, passportNumber string) (*User, error) {
+func (s *ServiceImpl) Create(ctx context.Context, passportNumber string) (*User, error) {
 	series, number, err := parsePassportNumber(passportNumber)
 	if err != nil {
 		return nil, errors.Join(ErrInvalidPassportNumber, err)
@@ -93,7 +101,7 @@ func (s *Service) Create(ctx context.Context, passportNumber string) (*User, err
 	return &u, nil
 }
 
-func (s *Service) Get(ctx context.Context, id int) (*User, error) {
+func (s *ServiceImpl) Get(ctx context.Context, id int) (*User, error) {
 	rows, err := s.db.Query(
 		ctx,
 		`
@@ -117,7 +125,7 @@ func (s *Service) Get(ctx context.Context, id int) (*User, error) {
 	return &u, nil
 }
 
-func (s *Service) List(ctx context.Context, filter *Filter, offset, limit int) ([]User, error) {
+func (s *ServiceImpl) List(ctx context.Context, filter *Filter, offset, limit int) ([]User, error) {
 	query, args := buildSelectQuery(filter, limit, offset)
 
 	rows, err := s.db.Query(ctx, query, args...)
@@ -133,7 +141,7 @@ func (s *Service) List(ctx context.Context, filter *Filter, offset, limit int) (
 	return users, nil
 }
 
-func (s *Service) Update(ctx context.Context, id int, update *Update) (*User, error) {
+func (s *ServiceImpl) Update(ctx context.Context, id int, update *Update) (*User, error) {
 	rows, err := s.db.Query(
 		ctx,
 		`
@@ -168,7 +176,7 @@ func (s *Service) Update(ctx context.Context, id int, update *Update) (*User, er
 	return &u, nil
 }
 
-func (s *Service) Delete(ctx context.Context, id int) (*User, error) {
+func (s *ServiceImpl) Delete(ctx context.Context, id int) (*User, error) {
 	rows, err := s.db.Query(
 		ctx,
 		`

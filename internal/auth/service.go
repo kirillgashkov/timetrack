@@ -23,15 +23,20 @@ var (
 	ErrInvalidAccessToken = errors.New("invalid access token")
 )
 
-type Service struct {
+type Service interface {
+	Authorize(ctx context.Context, g *PasswordGrant) (*Token, error)
+	UserFromAccessToken(accessToken string) (*User, error)
+}
+
+type ServiceImpl struct {
 	db *pgxpool.Pool
 }
 
-func NewService(db *pgxpool.Pool) *Service {
-	return &Service{db: db}
+func NewServiceImpl(db *pgxpool.Pool) *ServiceImpl {
+	return &ServiceImpl{db: db}
 }
 
-func (s *Service) Authorize(ctx context.Context, g *PasswordGrant) (*Token, error) {
+func (s *ServiceImpl) Authorize(ctx context.Context, g *PasswordGrant) (*Token, error) {
 	rows, err := s.db.Query(ctx, `SELECT id FROM users WHERE passport_number = $1`, g.Username)
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to select user"), err)
@@ -59,7 +64,7 @@ type User struct {
 	ID int
 }
 
-func (s *Service) UserFromAccessToken(accessToken string) (*User, error) {
+func (s *ServiceImpl) UserFromAccessToken(accessToken string) (*User, error) {
 	id, err := strconv.Atoi(accessToken)
 	if err != nil {
 		return nil, errors.Join(ErrInvalidAccessToken, err)

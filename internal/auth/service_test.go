@@ -10,7 +10,7 @@ import (
 )
 
 func TestAuthorize(t *testing.T) {
-	service := auth.NewService(db)
+	service := auth.NewServiceImpl(db)
 
 	t.Run("valid user credentials", func(t *testing.T) {
 		passportNumber := "0200 000000"
@@ -69,7 +69,7 @@ func TestAuthorize(t *testing.T) {
 }
 
 func TestUserFromAccessToken(t *testing.T) {
-	service := auth.NewService(db)
+	service := auth.NewServiceImpl(db)
 
 	t.Run("valid access token", func(t *testing.T) {
 		passportNumber := "0200 000000"

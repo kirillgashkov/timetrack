@@ -18,11 +18,11 @@ import (
 
 func NewServer(
 	cfg *config.ServerConfig,
-	authService *auth.Service,
-	reportingService *reporting.Service,
-	taskService *task.Service,
-	trackingService *tracking.Service,
-	userService *user.Service,
+	authService auth.Service,
+	reportingService reporting.Service,
+	taskService task.Service,
+	trackingService tracking.Service,
+	userService user.Service,
 ) (*http.Server, error) {
 	si := NewHandler(authService, reportingService, taskService, trackingService, userService)
 

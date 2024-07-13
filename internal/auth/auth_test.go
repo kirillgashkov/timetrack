@@ -2,9 +2,10 @@ package auth_test
 
 import (
 	"context"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"os"
 	"testing"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var (

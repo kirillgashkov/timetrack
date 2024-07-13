@@ -10,7 +10,11 @@ import (
 	"github.com/kirillgashkov/timetrack/internal/task"
 )
 
-type Service struct {
+type Service interface {
+	Report(ctx context.Context, userID int, from, to time.Time) ([]ReportTask, error)
+}
+
+type ServiceImpl struct {
 	db *pgxpool.Pool
 }
 
@@ -19,11 +23,11 @@ type ReportTask struct {
 	Duration time.Duration
 }
 
-func NewService(db *pgxpool.Pool) *Service {
-	return &Service{db: db}
+func NewServiceImpl(db *pgxpool.Pool) *ServiceImpl {
+	return &ServiceImpl{db: db}
 }
 
-func (s *Service) Report(ctx context.Context, userID int, from, to time.Time) ([]ReportTask, error) {
+func (s *ServiceImpl) Report(ctx context.Context, userID int, from, to time.Time) ([]ReportTask, error) {
 	rows, err := s.db.Query(
 		ctx,
 		`
