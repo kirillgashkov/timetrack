@@ -54,3 +54,8 @@ func MustWriteInternalServerError(w http.ResponseWriter, e error) {
 func MustWriteUnprocessableEntity(w http.ResponseWriter, ve ValidationError) {
 	MustWriteError(w, ve.Error(), http.StatusUnprocessableEntity)
 }
+
+func MustWriteUnauthorized(w http.ResponseWriter, m string) {
+	w.Header().Set("WWW-Authenticate", "Bearer")
+	MustWriteError(w, m, http.StatusUnauthorized)
+}
