@@ -1,6 +1,7 @@
 package reporting
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/kirillgashkov/timetrack/internal/auth"
@@ -27,25 +28,18 @@ func (h *Handler) PostUsersIdReport(w http.ResponseWriter, r *http.Request, id i
 		return
 	}
 
-	var reportIn *timetrackapi.ReportRequest
-	if err := apiutil.ReadJSON(r, &reportIn); err != nil {
-		apiutil.MustWriteError(w, "invalid request", http.StatusUnprocessableEntity)
-		return
-	}
-	if reportIn.From.IsZero() {
-		apiutil.MustWriteError(w, "missing from", http.StatusUnprocessableEntity)
-		return
-	}
-	if reportIn.To.IsZero() {
-		apiutil.MustWriteError(w, "missing to", http.StatusUnprocessableEntity)
-		return
-	}
-	if reportIn.From.After(reportIn.To) {
-		apiutil.MustWriteError(w, "from must be before to", http.StatusUnprocessableEntity)
+	req, err := parseAndValidateReportRequest(r)
+	if err != nil {
+		var ve apiutil.ValidationError
+		if errors.As(err, &ve) {
+			apiutil.MustWriteUnprocessableEntity(w, ve)
+			return
+		}
+		apiutil.MustWriteInternalServerError(w, "failed to parse and validate request", err)
 		return
 	}
 
-	reportTasks, err := h.service.Report(r.Context(), id, reportIn.From, reportIn.To)
+	reportTasks, err := h.service.Report(r.Context(), id, req.From, req.To)
 	if err != nil {
 		apiutil.MustWriteInternalServerError(w, "failed to generate report", err)
 		return
@@ -68,4 +62,34 @@ func (h *Handler) PostUsersIdReport(w http.ResponseWriter, r *http.Request, id i
 		})
 	}
 	apiutil.MustWriteJSON(w, reportTasksAPI, http.StatusOK)
+}
+
+func parseAndValidateReportRequest(r *http.Request) (*timetrackapi.ReportRequest, error) {
+	var req *timetrackapi.ReportRequest
+	if err := apiutil.ReadJSON(r, &req); err != nil {
+		return nil, apiutil.ValidationError{"bad JSON"}
+	}
+	if err := validateReportRequest(req); err != nil {
+		return nil, err
+	}
+	return req, nil
+}
+
+func validateReportRequest(req *timetrackapi.ReportRequest) error {
+	e := make([]string, 0)
+
+	if req.From.IsZero() {
+		e = append(e, "missing from")
+	}
+	if req.To.IsZero() {
+		e = append(e, "missing to")
+	}
+	if req.From.After(req.To) {
+		e = append(e, "from must be before to")
+	}
+
+	if len(e) > 0 {
+		return apiutil.ValidationError(e)
+	}
+	return nil
 }
