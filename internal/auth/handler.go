@@ -73,15 +73,19 @@ func ParseRequest(r *http.Request) (*Request, error) {
 }
 
 func (r *Request) Validate() error {
-	msgs := make([]string, 0)
+	m := make([]string, 0)
 	if r.GrantType != string(timetrackapi.Password) {
-		msgs = append(msgs, "invalid grant type")
+		m = append(m, "invalid grant type")
 	}
 	if r.Username == "" {
-		msgs = append(msgs, "missing username")
+		m = append(m, "missing username")
 	}
 	if r.Password == "" {
-		msgs = append(msgs, "missing password")
+		m = append(m, "missing password")
 	}
-	return apiutil.ValidationError(msgs)
+
+	if len(m) > 0 {
+		return apiutil.ValidationError(m)
+	}
+	return nil
 }
