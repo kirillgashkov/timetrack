@@ -67,7 +67,7 @@ func (h *Handler) PostUsersIdReport(w http.ResponseWriter, r *http.Request, id i
 func parseAndValidateReportRequest(r *http.Request) (*timetrackapi.ReportRequest, error) {
 	var req *timetrackapi.ReportRequest
 	if err := apiutil.ReadJSON(r, &req); err != nil {
-		return nil, apiutil.ValidationError{"bad JSON"}
+		return nil, errors.Join(apiutil.ValidationError{"bad JSON"}, err)
 	}
 	if err := validateReportRequest(req); err != nil {
 		return nil, err

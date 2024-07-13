@@ -72,13 +72,13 @@ type Task struct {
 	Id          int    `json:"id"`
 }
 
-// TaskCreate defines model for TaskCreate.
-type TaskCreate struct {
+// CreateTaskRequest defines model for CreateTaskRequest.
+type CreateTaskRequest struct {
 	Description string `json:"description"`
 }
 
-// TaskUpdate defines model for TaskUpdate.
-type TaskUpdate struct {
+// UpdateTaskRequest defines model for UpdateTaskRequest.
+type UpdateTaskRequest struct {
 	Description *string `json:"description,omitempty"`
 }
 
@@ -133,10 +133,10 @@ type GetUsersParams struct {
 type PostAuthFormdataRequestBody = AuthRequest
 
 // PostTasksJSONRequestBody defines body for PostTasks for application/json ContentType.
-type PostTasksJSONRequestBody = TaskCreate
+type PostTasksJSONRequestBody = CreateTaskRequest
 
 // PatchTasksIdJSONRequestBody defines body for PatchTasksId for application/json ContentType.
-type PatchTasksIdJSONRequestBody = TaskUpdate
+type PatchTasksIdJSONRequestBody = UpdateTaskRequest
 
 // PostUsersJSONRequestBody defines body for PostUsers for application/json ContentType.
 type PostUsersJSONRequestBody = UserCreate
