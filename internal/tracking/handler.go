@@ -21,9 +21,9 @@ func NewHandler(service Service) *Handler {
 //
 //nolint:revive
 func (h *Handler) PostTasksIdStart(w http.ResponseWriter, r *http.Request, id int) {
-	u := auth.MustUserFromContext(r.Context())
+	currentUser := auth.MustUserFromContext(r.Context())
 
-	err := h.service.StartTask(r.Context(), TaskID(id), UserID(u.ID))
+	err := h.service.StartTask(r.Context(), TaskID(id), UserID(currentUser.ID))
 	if err != nil {
 		if errors.Is(err, ErrAlreadyStarted) {
 			apiutil.MustWriteError(w, "task already started", http.StatusBadRequest)
@@ -40,9 +40,9 @@ func (h *Handler) PostTasksIdStart(w http.ResponseWriter, r *http.Request, id in
 //
 //nolint:revive
 func (h *Handler) PostTasksIdStop(w http.ResponseWriter, r *http.Request, id int) {
-	user := auth.MustUserFromContext(r.Context())
+	currentUser := auth.MustUserFromContext(r.Context())
 
-	err := h.service.StopTask(r.Context(), TaskID(id), UserID(user.ID))
+	err := h.service.StopTask(r.Context(), TaskID(id), UserID(currentUser.ID))
 	if err != nil {
 		if errors.Is(err, ErrNotStarted) {
 			apiutil.MustWriteError(w, "task not started", http.StatusBadRequest)
