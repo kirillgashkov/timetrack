@@ -18,10 +18,6 @@ type Token struct {
 	AccessToken string
 }
 
-type User struct {
-	ID int
-}
-
 var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrInvalidAccessToken = errors.New("invalid access token")
@@ -57,6 +53,10 @@ func (s *Service) Authorize(ctx context.Context, g *PasswordGrant) (*Token, erro
 
 	// Pseudo-token generation that uses the user ID as the access token.
 	return &Token{AccessToken: strconv.Itoa(id)}, nil
+}
+
+type User struct {
+	ID int
 }
 
 func (s *Service) UserFromAccessToken(accessToken string) (*User, error) {

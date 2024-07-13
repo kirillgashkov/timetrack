@@ -12,12 +12,6 @@ type Handler struct {
 	service *Service
 }
 
-type Request struct {
-	GrantType string
-	Username  string
-	Password  string
-}
-
 func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
@@ -59,6 +53,12 @@ func parseAndValidateRequest(r *http.Request) (*Request, error) {
 		return nil, err
 	}
 	return req, nil
+}
+
+type Request struct {
+	GrantType string
+	Username  string
+	Password  string
 }
 
 func ParseRequest(r *http.Request) (*Request, error) {
