@@ -12,6 +12,19 @@ var (
 	db *pgxpool.Pool
 )
 
+type ServiceMock struct {
+	AuthorizeFunc           func(ctx context.Context, g *PasswordGrant) (*Token, error)
+	UserFromAccessTokenFunc func(accessToken string) (*User, error)
+}
+
+func (s *ServiceMock) Authorize(ctx context.Context, g *PasswordGrant) (*Token, error) {
+	return s.AuthorizeFunc(ctx, g)
+}
+
+func (s *ServiceMock) UserFromAccessToken(accessToken string) (*User, error) {
+	return s.UserFromAccessTokenFunc(accessToken)
+}
+
 func TestMain(m *testing.M) {
 	code := func() int {
 		var err error
@@ -52,17 +65,4 @@ func teardownUser(t *testing.T, id int) {
 	if _, err := db.Exec(context.Background(), `DELETE FROM users WHERE id = $1`, id); err != nil {
 		t.Fatalf("failed to delete user: %v", err)
 	}
-}
-
-type ServiceMock struct {
-	AuthorizeFunc           func(ctx context.Context, g *PasswordGrant) (*Token, error)
-	UserFromAccessTokenFunc func(accessToken string) (*User, error)
-}
-
-func (s *ServiceMock) Authorize(ctx context.Context, g *PasswordGrant) (*Token, error) {
-	return s.AuthorizeFunc(ctx, g)
-}
-
-func (s *ServiceMock) UserFromAccessToken(accessToken string) (*User, error) {
-	return s.UserFromAccessTokenFunc(accessToken)
 }
