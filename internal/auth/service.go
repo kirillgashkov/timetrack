@@ -9,10 +9,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Service struct {
-	db *pgxpool.Pool
-}
-
 type PasswordGrant struct {
 	Username string
 	Password string
@@ -30,6 +26,10 @@ var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrInvalidAccessToken = errors.New("invalid access token")
 )
+
+type Service struct {
+	db *pgxpool.Pool
+}
 
 func NewService(db *pgxpool.Pool) *Service {
 	return &Service{db: db}
@@ -50,8 +50,7 @@ func (s *Service) Authorize(ctx context.Context, g *PasswordGrant) (*Token, erro
 		return nil, errors.Join(errors.New("failed to collect user"), err)
 	}
 
-	// Pseudo-authentication that checks if the username and password are the
-	// same.
+	// Pseudo-authentication that uses the username as the password.
 	if g.Username != g.Password {
 		return nil, ErrInvalidCredentials
 	}
