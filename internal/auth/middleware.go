@@ -19,20 +19,18 @@ func NewMiddleware(service *Service) *Middleware {
 
 func (m *Middleware) Authenticated(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			apiutil.MustWriteUnauthorized(w, "missing Authorization header")
+		t, err := ParseAccessToken(r)
+		if err != nil {
+			var ve apiutil.ValidationError
+			if errors.As(err, &ve) {
+				apiutil.MustWriteUnprocessableEntity(w, ve)
+				return
+			}
+			apiutil.MustWriteInternalServerError(w, "failed to parse access token", err)
 			return
 		}
 
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-			apiutil.MustWriteUnauthorized(w, "invalid Authorization header, expected Bearer token")
-			return
-		}
-		accessToken := parts[1]
-
-		user, err := m.service.UserFromAccessToken(accessToken)
+		u, err := m.service.UserFromAccessToken(t)
 		if err != nil {
 			if errors.Is(err, ErrInvalidAccessToken) {
 				apiutil.MustWriteUnauthorized(w, "invalid access token")
@@ -42,11 +40,25 @@ func (m *Middleware) Authenticated(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := ContextWithUser(r.Context(), user)
+		ctx := ContextWithUser(r.Context(), u)
 		r = r.WithContext(ctx)
-
 		next.ServeHTTP(w, r)
 	})
+}
+
+func ParseAccessToken(r *http.Request) (string, error) {
+	header := r.Header.Get("Authorization")
+	if header == "" {
+		return "", apiutil.ValidationError{"missing Authorization header"}
+	}
+
+	parts := strings.SplitN(header, " ", 2)
+	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
+		return "", apiutil.ValidationError{"invalid Authorization header, expected Bearer token"}
+	}
+
+	accessToken := parts[1]
+	return accessToken, nil
 }
 
 type userContextKeyType struct{}
