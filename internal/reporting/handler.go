@@ -47,7 +47,7 @@ func (h *Handler) PostUsersIdReport(w http.ResponseWriter, r *http.Request, id i
 
 	reportTasks, err := h.service.Report(r.Context(), id, reportIn.From, reportIn.To)
 	if err != nil {
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to generate report", err)
 		return
 	}
 

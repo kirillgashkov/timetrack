@@ -51,8 +51,7 @@ func (h *Handler) PostUsers(w http.ResponseWriter, r *http.Request) {
 			apiutil.MustWriteError(w, "user already exists", http.StatusBadRequest)
 			return
 		}
-		slog.Error("failed to create user", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to create user", err)
 		return
 	}
 
@@ -106,8 +105,7 @@ func (h *Handler) GetUsers(w http.ResponseWriter, r *http.Request, params timetr
 
 	users, err := h.service.List(r.Context(), filter, offset, limit)
 	if err != nil {
-		slog.Error("failed to get users", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to get users", err)
 		return
 	}
 
@@ -128,8 +126,7 @@ func (h *Handler) GetUsersCurrent(w http.ResponseWriter, r *http.Request) {
 			apiutil.MustWriteError(w, "user not found", http.StatusNotFound)
 			return
 		}
-		slog.Error("failed to get user", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to get user", err)
 		return
 	}
 
@@ -146,8 +143,7 @@ func (h *Handler) GetUsersId(w http.ResponseWriter, r *http.Request, id int) {
 			apiutil.MustWriteError(w, "user not found", http.StatusNotFound)
 			return
 		}
-		slog.Error("failed to get user", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to get user", err)
 		return
 	}
 
@@ -182,8 +178,7 @@ func (h *Handler) PatchUsersId(w http.ResponseWriter, r *http.Request, id int) {
 			apiutil.MustWriteError(w, "user not found", http.StatusNotFound)
 			return
 		}
-		slog.Error("failed to update user", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to update user", err)
 		return
 	}
 
@@ -206,8 +201,7 @@ func (h *Handler) DeleteUsersId(w http.ResponseWriter, r *http.Request, id int) 
 			apiutil.MustWriteError(w, "user not found", http.StatusNotFound)
 			return
 		}
-		slog.Error("failed to delete user", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to delete user", err)
 		return
 	}
 

@@ -2,7 +2,6 @@ package tracking
 
 import (
 	"errors"
-	"log/slog"
 	"net/http"
 
 	"github.com/kirillgashkov/timetrack/internal/auth"
@@ -30,8 +29,7 @@ func (h *Handler) PostTasksIdStart(w http.ResponseWriter, r *http.Request, id in
 			apiutil.MustWriteError(w, "task already started", http.StatusBadRequest)
 			return
 		}
-		slog.Error("failed to start task", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to start task", err)
 		return
 	}
 
@@ -50,8 +48,7 @@ func (h *Handler) PostTasksIdStop(w http.ResponseWriter, r *http.Request, id int
 			apiutil.MustWriteError(w, "task not started", http.StatusBadRequest)
 			return
 		}
-		slog.Error("failed to stop task", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to stop task", err)
 		return
 	}
 

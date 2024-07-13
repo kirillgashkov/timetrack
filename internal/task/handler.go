@@ -2,7 +2,6 @@ package task
 
 import (
 	"errors"
-	"log/slog"
 	"net/http"
 
 	"github.com/kirillgashkov/timetrack/internal/auth"
@@ -33,8 +32,7 @@ func (h *Handler) PostTasks(w http.ResponseWriter, r *http.Request) {
 
 	u, err := h.service.Create(r.Context(), &Create{Description: taskCreate.Description})
 	if err != nil {
-		slog.Error("failed to create task", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to create task", err)
 		return
 	}
 
@@ -66,8 +64,7 @@ func (h *Handler) GetTasks(w http.ResponseWriter, r *http.Request, params timetr
 
 	tasks, err := h.service.List(r.Context(), offset, limit)
 	if err != nil {
-		slog.Error("failed to get tasks", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to get tasks", err)
 		return
 	}
 
@@ -92,8 +89,7 @@ func (h *Handler) GetTasksId(w http.ResponseWriter, r *http.Request, id int) {
 			apiutil.MustWriteError(w, "task not found", http.StatusNotFound)
 			return
 		}
-		slog.Error("failed to get task", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to get task", err)
 		return
 	}
 
@@ -122,8 +118,7 @@ func (h *Handler) PatchTasksId(w http.ResponseWriter, r *http.Request, id int) {
 			apiutil.MustWriteError(w, "task not found", http.StatusNotFound)
 			return
 		}
-		slog.Error("failed to update task", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to update task", err)
 		return
 	}
 
@@ -144,8 +139,7 @@ func (h *Handler) DeleteTasksId(w http.ResponseWriter, r *http.Request, id int) 
 			apiutil.MustWriteError(w, "task not found", http.StatusNotFound)
 			return
 		}
-		slog.Error("failed to delete task", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to delete task", err)
 		return
 	}
 
