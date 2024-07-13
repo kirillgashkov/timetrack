@@ -73,16 +73,17 @@ func parseAuthRequest(r *http.Request) (*timetrackapi.AuthRequest, error) {
 }
 
 func validateAuthRequest(req *timetrackapi.AuthRequest) error {
-	m := make([]string, 0)
+	e := make([]string, 0)
+
 	if req.Username == "" {
-		m = append(m, "missing username")
+		e = append(e, "missing username")
 	}
 	if req.Password == "" {
-		m = append(m, "missing password")
+		e = append(e, "missing password")
 	}
 
-	if len(m) > 0 {
-		return apiutil.ValidationError(m)
+	if len(e) > 0 {
+		return apiutil.ValidationError(e)
 	}
 	return nil
 }
