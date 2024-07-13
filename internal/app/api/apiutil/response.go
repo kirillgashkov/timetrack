@@ -3,10 +3,27 @@ package apiutil
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/kirillgashkov/timetrack/api/timetrackapi/v1"
 )
+
+type ValidationError []string
+
+func NewValidationError(m ...string) ValidationError {
+	return ValidationError(m)
+}
+
+func (e ValidationError) Error() string {
+	sb := strings.Builder{}
+	for _, m := range e {
+		sb.WriteString(m)
+		sb.WriteString("\n")
+	}
+	return sb.String()
+}
 
 func MustWriteJSON(w http.ResponseWriter, v any, code int) {
 	w.Header().Set("Content-Type", "application/json")
@@ -29,10 +46,11 @@ func MustWriteForbidden(w http.ResponseWriter) {
 	MustWriteError(w, "forbidden", http.StatusForbidden)
 }
 
-func MustWriteInternalServerError(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusInternalServerError)
-	_, err := w.Write([]byte("internal server error"))
-	if err != nil {
-		panic(errors.Join(errors.New("failed to write response"), err))
-	}
+func MustWriteInternalServerError(w http.ResponseWriter, e error) {
+	slog.Error("internal server error", "error", e)
+	MustWriteError(w, "internal server error", http.StatusInternalServerError)
+}
+
+func MustWriteUnprocessableEntity(w http.ResponseWriter, ve ValidationError) {
+	MustWriteError(w, ve.Error(), http.StatusUnprocessableEntity)
 }

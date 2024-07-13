@@ -12,52 +12,76 @@ type Handler struct {
 	service *Service
 }
 
+type Request struct {
+	GrantType string
+	Username  string
+	Password  string
+}
+
 func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
 // PostAuth handles "POST /auth".
 func (h *Handler) PostAuth(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		apiutil.MustWriteError(w, "invalid request", http.StatusUnprocessableEntity)
-		return
-	}
-	grantType := r.FormValue("grant_type")
-	username := r.FormValue("username")
-	password := r.FormValue("password")
-
-	if grantType != string(timetrackapi.Password) {
-		apiutil.MustWriteError(w, "unsupported grant type", http.StatusUnprocessableEntity)
-		return
-	}
-	if username == "" {
-		apiutil.MustWriteError(w, "missing username", http.StatusUnprocessableEntity)
-		return
-	}
-	if password == "" {
-		apiutil.MustWriteError(w, "missing password", http.StatusUnprocessableEntity)
+	req, err := parseAndValidateRequest(r)
+	if err != nil {
+		var ve apiutil.ValidationError
+		if errors.As(err, &ve) {
+			apiutil.MustWriteUnprocessableEntity(w, ve)
+			return
+		}
+		apiutil.MustWriteInternalServerError(w, err)
 		return
 	}
 
-	token, err := h.service.Authorize(
-		r.Context(),
-		&PasswordGrant{
-			Username: username,
-			Password: password,
-		},
-	)
+	g := &PasswordGrant{Username: req.Username, Password: req.Password}
+	token, err := h.service.Authorize(r.Context(), g)
 	if err != nil {
 		if errors.Is(err, ErrInvalidCredentials) {
 			apiutil.MustWriteError(w, "invalid credentials", http.StatusBadRequest)
 			return
 		}
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, err)
 		return
 	}
 
-	tokenAPI := &timetrackapi.Token{
-		AccessToken: token.AccessToken,
-		TokenType:   timetrackapi.Bearer,
+	t := &timetrackapi.Token{AccessToken: token.AccessToken, TokenType: timetrackapi.Bearer}
+	apiutil.MustWriteJSON(w, t, http.StatusOK)
+}
+
+func parseAndValidateRequest(r *http.Request) (*Request, error) {
+	req, err := ParseRequest(r)
+	if err != nil {
+		return nil, err
 	}
-	apiutil.MustWriteJSON(w, tokenAPI, http.StatusOK)
+	if err = req.Validate(); err != nil {
+		return nil, err
+	}
+	return req, nil
+}
+
+func ParseRequest(r *http.Request) (*Request, error) {
+	if err := r.ParseForm(); err != nil {
+		return nil, errors.Join(apiutil.ValidationError([]string{"bad form"}), err)
+	}
+	grantType := r.FormValue("grant_type")
+	username := r.FormValue("username")
+	password := r.FormValue("password")
+
+	return &Request{GrantType: grantType, Username: username, Password: password}, nil
+}
+
+func (r *Request) Validate() error {
+	msgs := make([]string, 0)
+	if r.GrantType != string(timetrackapi.Password) {
+		msgs = append(msgs, "invalid grant type")
+	}
+	if r.Username == "" {
+		msgs = append(msgs, "missing username")
+	}
+	if r.Password == "" {
+		msgs = append(msgs, "missing password")
+	}
+	return apiutil.ValidationError(msgs)
 }
