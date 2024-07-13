@@ -14,9 +14,11 @@ type ValidationError []string
 
 func (e ValidationError) Error() string {
 	sb := strings.Builder{}
-	for _, m := range e {
+	for i, m := range e {
+		if i > 0 {
+			sb.WriteString("\n")
+		}
 		sb.WriteString(m)
-		sb.WriteString("\n")
 	}
 	return sb.String()
 }
