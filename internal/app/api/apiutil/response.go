@@ -12,10 +12,6 @@ import (
 
 type ValidationError []string
 
-func NewValidationError(m ...string) ValidationError {
-	return ValidationError(m)
-}
-
 func (e ValidationError) Error() string {
 	sb := strings.Builder{}
 	for _, m := range e {
