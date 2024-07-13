@@ -8,16 +8,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+var (
+	ErrNotFound = errors.New("task not found")
+)
+
 type Service interface {
-	Create(ctx context.Context, create *Create) (*Task, error)
+	Create(ctx context.Context, create *CreateTask) (*Task, error)
 	Get(ctx context.Context, id int) (*Task, error)
 	List(ctx context.Context, offset, limit int) ([]Task, error)
-	Update(ctx context.Context, id int, update *Update) (*Task, error)
+	Update(ctx context.Context, id int, update *UpdateTask) (*Task, error)
 	Delete(ctx context.Context, id int) (*Task, error)
-}
-
-type ServiceImpl struct {
-	db *pgxpool.Pool
 }
 
 type Task struct {
@@ -25,23 +25,23 @@ type Task struct {
 	Description string
 }
 
-type Create struct {
+type CreateTask struct {
 	Description string
 }
 
-type Update struct {
+type UpdateTask struct {
 	Description *string
 }
 
-var (
-	ErrNotFound = errors.New("task not found")
-)
+type ServiceImpl struct {
+	db *pgxpool.Pool
+}
 
 func NewServiceImpl(db *pgxpool.Pool) *ServiceImpl {
 	return &ServiceImpl{db: db}
 }
 
-func (s *ServiceImpl) Create(ctx context.Context, create *Create) (*Task, error) {
+func (s *ServiceImpl) Create(ctx context.Context, create *CreateTask) (*Task, error) {
 	rows, err := s.db.Query(
 		ctx,
 		`INSERT INTO tasks (description) VALUES ($1) RETURNING id, description`,
@@ -99,7 +99,7 @@ func (s *ServiceImpl) List(ctx context.Context, offset, limit int) ([]Task, erro
 	return tasks, nil
 }
 
-func (s *ServiceImpl) Update(ctx context.Context, id int, update *Update) (*Task, error) {
+func (s *ServiceImpl) Update(ctx context.Context, id int, update *UpdateTask) (*Task, error) {
 	rows, err := s.db.Query(
 		ctx,
 		`UPDATE tasks SET description = coalesce($1, description) WHERE id = $2 RETURNING id, description`,

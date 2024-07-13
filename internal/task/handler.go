@@ -30,7 +30,7 @@ func (h *Handler) PostTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := h.service.Create(r.Context(), &Create{Description: taskCreate.Description})
+	u, err := h.service.Create(r.Context(), &CreateTask{Description: taskCreate.Description})
 	if err != nil {
 		apiutil.MustWriteInternalServerError(w, "failed to create task", err)
 		return
@@ -110,7 +110,7 @@ func (h *Handler) PatchTasksId(w http.ResponseWriter, r *http.Request, id int) {
 		return
 	}
 
-	t, err := h.service.Update(r.Context(), id, &Update{
+	t, err := h.service.Update(r.Context(), id, &UpdateTask{
 		Description: taskUpdateAPI.Description,
 	})
 	if err != nil {
