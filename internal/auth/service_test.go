@@ -1,16 +1,14 @@
-package auth_test
+package auth
 
 import (
 	"context"
 	"errors"
 	"strconv"
 	"testing"
-
-	"github.com/kirillgashkov/timetrack/internal/auth"
 )
 
 func TestAuthorize(t *testing.T) {
-	service := auth.NewServiceImpl(db)
+	service := NewServiceImpl(db)
 
 	t.Run("valid user credentials", func(t *testing.T) {
 		passportNumber := "0200 000000"
@@ -18,7 +16,7 @@ func TestAuthorize(t *testing.T) {
 		defer teardownUser(t, id)
 
 		token, err := service.Authorize(
-			context.Background(), &auth.PasswordGrant{Username: passportNumber, Password: passportNumber},
+			context.Background(), &PasswordGrant{Username: passportNumber, Password: passportNumber},
 		)
 		if err != nil {
 			t.Fatalf("expected no error, got: %v", err)
@@ -37,12 +35,12 @@ func TestAuthorize(t *testing.T) {
 		defer teardownUser(t, id)
 
 		token, err := service.Authorize(
-			context.Background(), &auth.PasswordGrant{Username: passportNumber, Password: "wrong"},
+			context.Background(), &PasswordGrant{Username: passportNumber, Password: "wrong"},
 		)
 		if err == nil {
 			t.Fatalf("expected error, got nil")
 		}
-		if !errors.Is(err, auth.ErrInvalidCredentials) {
+		if !errors.Is(err, ErrInvalidCredentials) {
 			t.Errorf("expected ErrInvalidCredentials, got: %v", err)
 		}
 		if token != nil {
@@ -54,12 +52,12 @@ func TestAuthorize(t *testing.T) {
 		passportNumber := "0404 000000"
 
 		token, err := service.Authorize(
-			context.Background(), &auth.PasswordGrant{Username: passportNumber, Password: passportNumber},
+			context.Background(), &PasswordGrant{Username: passportNumber, Password: passportNumber},
 		)
 		if err == nil {
 			t.Fatalf("expected error, got nil")
 		}
-		if !errors.Is(err, auth.ErrInvalidCredentials) {
+		if !errors.Is(err, ErrInvalidCredentials) {
 			t.Errorf("expected ErrInvalidCredentials, got: %v", err)
 		}
 		if token != nil {
@@ -69,7 +67,7 @@ func TestAuthorize(t *testing.T) {
 }
 
 func TestUserFromAccessToken(t *testing.T) {
-	service := auth.NewServiceImpl(db)
+	service := NewServiceImpl(db)
 
 	t.Run("valid access token", func(t *testing.T) {
 		passportNumber := "0200 000000"
@@ -93,7 +91,7 @@ func TestUserFromAccessToken(t *testing.T) {
 		if err == nil {
 			t.Fatalf("expected error, got nil")
 		}
-		if !errors.Is(err, auth.ErrInvalidAccessToken) {
+		if !errors.Is(err, ErrInvalidAccessToken) {
 			t.Errorf("expected ErrInvalidAccessToken, got: %v", err)
 		}
 		if user != nil {
