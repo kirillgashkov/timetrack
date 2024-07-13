@@ -19,11 +19,10 @@ func NewHandler(service Service) *Handler {
 }
 
 // PostTasks handles "POST /tasks/".
+//
+// For simplicity, we don't use user in the task domain, but we do use them in
+// other domains.
 func (h *Handler) PostTasks(w http.ResponseWriter, r *http.Request) {
-	// For simplicity, we don't use user in the task domain, but we do use them
-	// in other domains.
-	_ = auth.MustUserFromContext(r.Context())
-
 	var taskCreate *timetrackapi.TaskCreate
 	if err := apiutil.ReadJSON(r, &taskCreate); err != nil {
 		apiutil.MustWriteError(w, "invalid request", http.StatusUnprocessableEntity)
