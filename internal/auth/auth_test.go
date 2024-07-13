@@ -53,3 +53,16 @@ func teardownUser(t *testing.T, id int) {
 		t.Fatalf("failed to delete user: %v", err)
 	}
 }
+
+type ServiceMock struct {
+	AuthorizeFunc           func(ctx context.Context, g *PasswordGrant) (*Token, error)
+	UserFromAccessTokenFunc func(accessToken string) (*User, error)
+}
+
+func (s *ServiceMock) Authorize(ctx context.Context, g *PasswordGrant) (*Token, error) {
+	return s.AuthorizeFunc(ctx, g)
+}
+
+func (s *ServiceMock) UserFromAccessToken(accessToken string) (*User, error) {
+	return s.UserFromAccessTokenFunc(accessToken)
+}
