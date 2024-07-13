@@ -2,7 +2,6 @@ package tracking
 
 import (
 	"errors"
-	"log/slog"
 	"net/http"
 
 	"github.com/kirillgashkov/timetrack/internal/auth"
@@ -11,10 +10,10 @@ import (
 )
 
 type Handler struct {
-	service *Service
+	service Service
 }
 
-func NewHandler(service *Service) *Handler {
+func NewHandler(service Service) *Handler {
 	return &Handler{service: service}
 }
 
@@ -22,16 +21,15 @@ func NewHandler(service *Service) *Handler {
 //
 //nolint:revive
 func (h *Handler) PostTasksIdStart(w http.ResponseWriter, r *http.Request, id int) {
-	u := auth.MustUserFromContext(r.Context())
+	currentUser := auth.MustUserFromContext(r.Context())
 
-	err := h.service.StartTask(r.Context(), TaskID(id), UserID(u.ID))
+	err := h.service.StartTask(r.Context(), TaskID(id), UserID(currentUser.ID))
 	if err != nil {
 		if errors.Is(err, ErrAlreadyStarted) {
 			apiutil.MustWriteError(w, "task already started", http.StatusBadRequest)
 			return
 		}
-		slog.Error("failed to start task", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to start task", err)
 		return
 	}
 
@@ -42,16 +40,15 @@ func (h *Handler) PostTasksIdStart(w http.ResponseWriter, r *http.Request, id in
 //
 //nolint:revive
 func (h *Handler) PostTasksIdStop(w http.ResponseWriter, r *http.Request, id int) {
-	user := auth.MustUserFromContext(r.Context())
+	currentUser := auth.MustUserFromContext(r.Context())
 
-	err := h.service.StopTask(r.Context(), TaskID(id), UserID(user.ID))
+	err := h.service.StopTask(r.Context(), TaskID(id), UserID(currentUser.ID))
 	if err != nil {
 		if errors.Is(err, ErrNotStarted) {
 			apiutil.MustWriteError(w, "task not started", http.StatusBadRequest)
 			return
 		}
-		slog.Error("failed to stop task", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to stop task", err)
 		return
 	}
 

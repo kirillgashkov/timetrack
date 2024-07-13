@@ -1,6 +1,7 @@
 package reporting
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/kirillgashkov/timetrack/internal/auth"
@@ -10,10 +11,10 @@ import (
 )
 
 type Handler struct {
-	service *Service
+	service Service
 }
 
-func NewHandler(service *Service) *Handler {
+func NewHandler(service Service) *Handler {
 	return &Handler{service: service}
 }
 
@@ -27,45 +28,66 @@ func (h *Handler) PostUsersIdReport(w http.ResponseWriter, r *http.Request, id i
 		return
 	}
 
-	var reportIn *timetrackapi.ReportIn
-	if err := apiutil.ReadJSON(r, &reportIn); err != nil {
-		apiutil.MustWriteError(w, "invalid request", http.StatusUnprocessableEntity)
-		return
-	}
-	if reportIn.From.IsZero() {
-		apiutil.MustWriteError(w, "missing from", http.StatusUnprocessableEntity)
-		return
-	}
-	if reportIn.To.IsZero() {
-		apiutil.MustWriteError(w, "missing to", http.StatusUnprocessableEntity)
-		return
-	}
-	if reportIn.From.After(reportIn.To) {
-		apiutil.MustWriteError(w, "from must be before to", http.StatusUnprocessableEntity)
-		return
-	}
-
-	reportTasks, err := h.service.Report(r.Context(), id, reportIn.From, reportIn.To)
+	req, err := parseAndValidateReportRequest(r)
 	if err != nil {
-		apiutil.MustWriteInternalServerError(w)
+		var ve apiutil.ValidationError
+		if errors.As(err, &ve) {
+			apiutil.MustWriteUnprocessableEntity(w, ve)
+			return
+		}
+		apiutil.MustWriteInternalServerError(w, "failed to parse and validate request", err)
 		return
 	}
 
-	reportTasksAPI := make([]*timetrackapi.ReportTask, 0, len(reportTasks))
-	for _, t := range reportTasks {
-		hours := int(t.Duration.Hours())
-		minutes := int(t.Duration.Minutes()) % 60
+	reportTasks, err := h.service.Report(r.Context(), id, req.From, req.To)
+	if err != nil {
+		apiutil.MustWriteInternalServerError(w, "failed to generate report", err)
+		return
+	}
 
-		reportTasksAPI = append(reportTasksAPI, &timetrackapi.ReportTask{
-			Task: &timetrackapi.Task{
+	resp := make([]*timetrackapi.ReportTaskResponse, 0, len(reportTasks))
+	for _, t := range reportTasks {
+		reportTaskResp := &timetrackapi.ReportTaskResponse{
+			Task: &timetrackapi.TaskResponse{
 				Id:          t.Task.ID,
 				Description: t.Task.Description,
 			},
-			Duration: &timetrackapi.ReportDuration{
-				Hours:   hours,
-				Minutes: minutes,
+			Duration: &timetrackapi.ReportDurationResponse{
+				Hours:   int(t.Duration.Hours()),
+				Minutes: int(t.Duration.Minutes()) % 60,
 			},
-		})
+		}
+		resp = append(resp, reportTaskResp)
 	}
-	apiutil.MustWriteJSON(w, reportTasksAPI, http.StatusOK)
+	apiutil.MustWriteJSON(w, resp, http.StatusOK)
+}
+
+func parseAndValidateReportRequest(r *http.Request) (*timetrackapi.ReportRequest, error) {
+	var req *timetrackapi.ReportRequest
+	if err := apiutil.ReadJSON(r, &req); err != nil {
+		return nil, errors.Join(apiutil.ValidationError{"bad JSON"}, err)
+	}
+	if err := validateReportRequest(req); err != nil {
+		return nil, err
+	}
+	return req, nil
+}
+
+func validateReportRequest(req *timetrackapi.ReportRequest) error {
+	e := make([]string, 0)
+
+	if req.From.IsZero() {
+		e = append(e, "missing from")
+	}
+	if req.To.IsZero() {
+		e = append(e, "missing to")
+	}
+	if req.From.After(req.To) {
+		e = append(e, "from must be before to")
+	}
+
+	if len(e) > 0 {
+		return apiutil.ValidationError(e)
+	}
+	return nil
 }

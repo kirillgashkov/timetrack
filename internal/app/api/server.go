@@ -1,7 +1,6 @@
 package api
 
 import (
-	"log/slog"
 	"net"
 	"net/http"
 	"time"
@@ -19,11 +18,11 @@ import (
 
 func NewServer(
 	cfg *config.ServerConfig,
-	authService *auth.Service,
-	reportingService *reporting.Service,
-	taskService *task.Service,
-	trackingService *tracking.Service,
-	userService *user.Service,
+	authService auth.Service,
+	reportingService reporting.Service,
+	taskService task.Service,
+	trackingService tracking.Service,
+	userService user.Service,
 ) (*http.Server, error) {
 	si := NewHandler(authService, reportingService, taskService, trackingService, userService)
 
@@ -52,8 +51,7 @@ func newServeMux(si timetrackapi.ServerInterface, authMiddleware *auth.Middlewar
 		Handler:            si,
 		HandlerMiddlewares: make([]timetrackapi.MiddlewareFunc, 0),
 		ErrorHandlerFunc: func(w http.ResponseWriter, _ *http.Request, err error) {
-			slog.Error("oapi-codegen error", "error", err)
-			apiutil.MustWriteInternalServerError(w)
+			apiutil.MustWriteInternalServerError(w, "oapi-codegen error", err)
 		},
 	}
 

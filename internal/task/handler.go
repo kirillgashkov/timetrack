@@ -2,159 +2,179 @@ package task
 
 import (
 	"errors"
-	"log/slog"
 	"net/http"
-
-	"github.com/kirillgashkov/timetrack/internal/auth"
 
 	"github.com/kirillgashkov/timetrack/api/timetrackapi/v1"
 	"github.com/kirillgashkov/timetrack/internal/app/api/apiutil"
 )
 
 type Handler struct {
-	service *Service
+	service Service
 }
 
-func NewHandler(service *Service) *Handler {
+func NewHandler(service Service) *Handler {
 	return &Handler{service: service}
 }
 
 // PostTasks handles "POST /tasks/".
+//
+// For simplicity, we don't use user in the task domain, but we do use them in
+// other domains.
 func (h *Handler) PostTasks(w http.ResponseWriter, r *http.Request) {
-	// For simplicity, we don't use user in the task domain, but we do use them
-	// in other domains.
-	_ = auth.MustUserFromContext(r.Context())
-
-	var taskCreate *timetrackapi.TaskCreate
-	if err := apiutil.ReadJSON(r, &taskCreate); err != nil {
-		apiutil.MustWriteError(w, "invalid request", http.StatusUnprocessableEntity)
+	var req *timetrackapi.CreateTaskRequest
+	if err := apiutil.ReadJSON(r, &req); err != nil {
+		apiutil.MustWriteUnprocessableEntity(w, apiutil.ValidationError{"bad JSON"})
 		return
 	}
 
-	u, err := h.service.Create(r.Context(), &Create{Description: taskCreate.Description})
+	create := &CreateTask{Description: req.Description}
+	t, err := h.service.Create(r.Context(), create)
 	if err != nil {
-		slog.Error("failed to create task", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to create task", err)
 		return
 	}
 
-	apiutil.MustWriteJSON(w, toTaskAPI(u), http.StatusOK)
+	resp := toTaskResponse(t)
+	apiutil.MustWriteJSON(w, resp, http.StatusOK)
 }
 
 // GetTasks handles "GET /tasks/".
+//
+// For simplicity, we don't use user in the task domain, but we do use them in
+// other domains.
 func (h *Handler) GetTasks(w http.ResponseWriter, r *http.Request, params timetrackapi.GetTasksParams) {
-	// For simplicity, we don't use user in the task domain, but we do use them
-	// in other domains.
-	_ = auth.MustUserFromContext(r.Context())
-
-	offset := 0
-	if params.Offset != nil {
-		if *params.Offset < 0 {
-			apiutil.MustWriteError(w, "invalid offset", http.StatusUnprocessableEntity)
+	if err := validateAndNormalizeListTasksRequest(&params); err != nil {
+		var ve apiutil.ValidationError
+		if errors.As(err, &ve) {
+			apiutil.MustWriteUnprocessableEntity(w, ve)
 			return
 		}
-		offset = *params.Offset
-	}
-	limit := 50
-	if params.Limit != nil {
-		if *params.Limit < 1 || *params.Limit > 100 {
-			apiutil.MustWriteError(w, "invalid limit", http.StatusUnprocessableEntity)
-			return
-		}
-		limit = *params.Limit
-	}
-
-	tasks, err := h.service.List(r.Context(), offset, limit)
-	if err != nil {
-		slog.Error("failed to get tasks", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to validate and normalize request", err)
 		return
 	}
 
-	tasksAPI := make([]*timetrackapi.Task, 0, len(tasks))
-	for _, t := range tasks {
-		tasksAPI = append(tasksAPI, toTaskAPI(&t))
+	tasks, err := h.service.List(r.Context(), *params.Offset, *params.Limit)
+	if err != nil {
+		apiutil.MustWriteInternalServerError(w, "failed to list tasks", err)
+		return
 	}
-	apiutil.MustWriteJSON(w, tasksAPI, http.StatusOK)
+
+	resp := make([]*timetrackapi.TaskResponse, 0, len(tasks))
+	for _, t := range tasks {
+		resp = append(resp, toTaskResponse(&t))
+	}
+	apiutil.MustWriteJSON(w, resp, http.StatusOK)
+}
+
+func validateAndNormalizeListTasksRequest(params *timetrackapi.GetTasksParams) error {
+	if err := validateListTasksRequest(*params); err != nil {
+		return err
+	}
+	normalizeListTasksRequest(params)
+	return nil
+}
+
+func validateListTasksRequest(params timetrackapi.GetTasksParams) error {
+	e := make([]string, 0)
+
+	if params.Offset != nil && *params.Offset < 0 {
+		e = append(e, "invalid offset, must be greater than or equal to 0")
+	}
+	if params.Limit != nil && *params.Limit < 1 || *params.Limit > 100 {
+		e = append(e, "invalid limit, must be between 1 and 100")
+	}
+
+	if len(e) > 0 {
+		return apiutil.ValidationError(e)
+	}
+	return nil
+}
+
+func normalizeListTasksRequest(params *timetrackapi.GetTasksParams) {
+	if params.Offset == nil {
+		params.Offset = intPtr(0)
+	}
+	if params.Limit == nil {
+		params.Limit = intPtr(50)
+	}
 }
 
 // GetTasksId handles "GET /tasks/{id}".
 //
+// For simplicity, we don't use user in the task domain, but we do use them in
+// other domains.
+//
 //nolint:revive
 func (h *Handler) GetTasksId(w http.ResponseWriter, r *http.Request, id int) {
-	// For simplicity, we don't use user in the task domain, but we do use them
-	// in other domains.
-	_ = auth.MustUserFromContext(r.Context())
-
 	t, err := h.service.Get(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			apiutil.MustWriteError(w, "task not found", http.StatusNotFound)
 			return
 		}
-		slog.Error("failed to get task", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to get task", err)
 		return
 	}
 
-	apiutil.MustWriteJSON(w, toTaskAPI(t), http.StatusOK)
+	resp := toTaskResponse(t)
+	apiutil.MustWriteJSON(w, resp, http.StatusOK)
 }
 
 // PatchTasksId handles "PATCH /tasks/{id}".
 //
+// For simplicity, we don't use user in the task domain, but we do use them in
+// other domains.
+//
 //nolint:revive
 func (h *Handler) PatchTasksId(w http.ResponseWriter, r *http.Request, id int) {
-	// For simplicity, we don't use user in the task domain, but we do use them
-	// in other domains.
-	_ = auth.MustUserFromContext(r.Context())
-
-	var taskUpdateAPI *timetrackapi.TaskUpdate
-	if err := apiutil.ReadJSON(r, &taskUpdateAPI); err != nil {
-		apiutil.MustWriteError(w, "invalid request", http.StatusUnprocessableEntity)
+	var req *timetrackapi.UpdateTaskRequest
+	if err := apiutil.ReadJSON(r, &req); err != nil {
+		apiutil.MustWriteUnprocessableEntity(w, apiutil.ValidationError{"bad JSON"})
 		return
 	}
 
-	t, err := h.service.Update(r.Context(), id, &Update{
-		Description: taskUpdateAPI.Description,
-	})
+	update := &UpdateTask{Description: req.Description}
+	t, err := h.service.Update(r.Context(), id, update)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			apiutil.MustWriteError(w, "task not found", http.StatusNotFound)
 			return
 		}
-		slog.Error("failed to update task", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to update task", err)
 		return
 	}
 
-	apiutil.MustWriteJSON(w, toTaskAPI(t), http.StatusOK)
+	apiutil.MustWriteJSON(w, toTaskResponse(t), http.StatusOK)
 }
 
 // DeleteTasksId handles "DELETE /tasks/{id}".
 //
+// For simplicity, we don't use user in the task domain, but we do use them in
+// other domains.
+//
 //nolint:revive
 func (h *Handler) DeleteTasksId(w http.ResponseWriter, r *http.Request, id int) {
-	// For simplicity, we don't use user in the task domain, but we do use them
-	// in other domains.
-	_ = auth.MustUserFromContext(r.Context())
-
 	t, err := h.service.Delete(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			apiutil.MustWriteError(w, "task not found", http.StatusNotFound)
 			return
 		}
-		slog.Error("failed to delete task", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to delete task", err)
 		return
 	}
 
-	apiutil.MustWriteJSON(w, toTaskAPI(t), http.StatusOK)
+	resp := toTaskResponse(t)
+	apiutil.MustWriteJSON(w, resp, http.StatusOK)
 }
 
-func toTaskAPI(t *Task) *timetrackapi.Task {
-	return &timetrackapi.Task{
+func toTaskResponse(t *Task) *timetrackapi.TaskResponse {
+	return &timetrackapi.TaskResponse{
 		Id:          t.ID,
 		Description: t.Description,
 	}
+}
+
+func intPtr(i int) *int {
+	return &i
 }

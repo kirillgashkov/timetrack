@@ -13,7 +13,12 @@ import (
 	"github.com/kirillgashkov/timetrack/db/timetrackdb"
 )
 
-type Service struct {
+type Service interface {
+	StartTask(ctx context.Context, taskID TaskID, userID UserID) error
+	StopTask(ctx context.Context, taskID TaskID, userID UserID) error
+}
+
+type ServiceImpl struct {
 	db *pgxpool.Pool
 }
 
@@ -25,11 +30,11 @@ var (
 	ErrNotStarted     = errors.New("task not started")
 )
 
-func NewService(db *pgxpool.Pool) *Service {
-	return &Service{db: db}
+func NewServiceImpl(db *pgxpool.Pool) *ServiceImpl {
+	return &ServiceImpl{db: db}
 }
 
-func (s *Service) StartTask(ctx context.Context, taskID TaskID, userID UserID) error {
+func (s *ServiceImpl) StartTask(ctx context.Context, taskID TaskID, userID UserID) error {
 	_, err := s.db.Exec(
 		ctx,
 		`INSERT INTO works (started_at, task_id, user_id, status) VALUES (now(), $1, $2, $3)`,
@@ -47,7 +52,7 @@ func (s *Service) StartTask(ctx context.Context, taskID TaskID, userID UserID) e
 	return nil
 }
 
-func (s *Service) StopTask(ctx context.Context, taskID TaskID, userID UserID) error {
+func (s *ServiceImpl) StopTask(ctx context.Context, taskID TaskID, userID UserID) error {
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return errors.Join(errors.New("failed to start transaction"), err)

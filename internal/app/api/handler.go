@@ -27,11 +27,11 @@ type Handler struct {
 }
 
 func NewHandler(
-	authService *auth.Service,
-	reportingService *reporting.Service,
-	taskService *task.Service,
-	trackingService *tracking.Service,
-	userService *user.Service,
+	authService auth.Service,
+	reportingService reporting.Service,
+	taskService task.Service,
+	trackingService tracking.Service,
+	userService user.Service,
 ) *Handler {
 	return &Handler{
 		authHandler:      auth.NewHandler(authService),

@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"strconv"
 	"strings"
@@ -22,30 +23,36 @@ type User struct {
 }
 
 type Filter struct {
-	PassportNumber  *string
-	Surname         *string
-	Name            *string
-	Patronymic      *string
-	PatronymicForce bool
-	Address         *string
+	PassportNumber *string
+	Surname        *string
+	Name           *string
+	Patronymic     *sql.NullString
+	Address        *string
 }
 
 type Update struct {
-	PassportNumber  *string
-	Surname         *string
-	Name            *string
-	Patronymic      *string
-	PatronymicForce bool
-	Address         *string
+	PassportNumber *string
+	Surname        *string
+	Name           *string
+	Patronymic     *sql.NullString
+	Address        *string
 }
 
-type Service struct {
+type Service interface {
+	Create(ctx context.Context, passportNumber string) (*User, error)
+	Get(ctx context.Context, id int) (*User, error)
+	List(ctx context.Context, filter *Filter, offset, limit int) ([]User, error)
+	Update(ctx context.Context, id int, update *Update) (*User, error)
+	Delete(ctx context.Context, id int) (*User, error)
+}
+
+type ServiceImpl struct {
 	db                *pgxpool.Pool
 	peopleInfoService PeopleInfoService
 }
 
-func NewService(db *pgxpool.Pool, peopleInfoService PeopleInfoService) *Service {
-	return &Service{db: db, peopleInfoService: peopleInfoService}
+func NewServiceImpl(db *pgxpool.Pool, peopleInfoService PeopleInfoService) *ServiceImpl {
+	return &ServiceImpl{db: db, peopleInfoService: peopleInfoService}
 }
 
 var (
@@ -55,7 +62,7 @@ var (
 	ErrPeopleInfoUnavailable = errors.New("people info service is unavailable")
 )
 
-func (s *Service) Create(ctx context.Context, passportNumber string) (*User, error) {
+func (s *ServiceImpl) Create(ctx context.Context, passportNumber string) (*User, error) {
 	series, number, err := parsePassportNumber(passportNumber)
 	if err != nil {
 		return nil, errors.Join(ErrInvalidPassportNumber, err)
@@ -93,7 +100,7 @@ func (s *Service) Create(ctx context.Context, passportNumber string) (*User, err
 	return &u, nil
 }
 
-func (s *Service) Get(ctx context.Context, id int) (*User, error) {
+func (s *ServiceImpl) Get(ctx context.Context, id int) (*User, error) {
 	rows, err := s.db.Query(
 		ctx,
 		`
@@ -117,7 +124,7 @@ func (s *Service) Get(ctx context.Context, id int) (*User, error) {
 	return &u, nil
 }
 
-func (s *Service) List(ctx context.Context, filter *Filter, offset, limit int) ([]User, error) {
+func (s *ServiceImpl) List(ctx context.Context, filter *Filter, offset, limit int) ([]User, error) {
 	query, args := buildSelectQuery(filter, limit, offset)
 
 	rows, err := s.db.Query(ctx, query, args...)
@@ -133,7 +140,7 @@ func (s *Service) List(ctx context.Context, filter *Filter, offset, limit int) (
 	return users, nil
 }
 
-func (s *Service) Update(ctx context.Context, id int, update *Update) (*User, error) {
+func (s *ServiceImpl) Update(ctx context.Context, id int, update *Update) (*User, error) {
 	rows, err := s.db.Query(
 		ctx,
 		`
@@ -141,7 +148,7 @@ func (s *Service) Update(ctx context.Context, id int, update *Update) (*User, er
 			SET passport_number = COALESCE($2, passport_number),
 				surname = COALESCE($3, surname),
 				name = COALESCE($4, name),
-				patronymic = CASE WHEN $6 THEN $5 ELSE COALESCE($5, patronymic) END,
+				patronymic = CASE WHEN $6 THEN $5 ELSE patronymic END,
 				address = COALESCE($7, address)
 			WHERE id = $1
 			RETURNING id, passport_number, surname, name, patronymic, address
@@ -151,7 +158,7 @@ func (s *Service) Update(ctx context.Context, id int, update *Update) (*User, er
 		update.Surname,
 		update.Name,
 		update.Patronymic,
-		&update.PatronymicForce,
+		update.Patronymic != nil,
 		update.Address,
 	)
 	if err != nil {
@@ -168,7 +175,7 @@ func (s *Service) Update(ctx context.Context, id int, update *Update) (*User, er
 	return &u, nil
 }
 
-func (s *Service) Delete(ctx context.Context, id int) (*User, error) {
+func (s *ServiceImpl) Delete(ctx context.Context, id int) (*User, error) {
 	rows, err := s.db.Query(
 		ctx,
 		`
@@ -223,11 +230,13 @@ func buildSelectQuery(filter *Filter, limit, offset int) (string, []any) {
 	}
 
 	if filter.Patronymic != nil {
-		whereConditions = append(whereConditions, `patronymic % $`+itoa(argIndex))
-		args = append(args, *filter.Patronymic)
-		argIndex++
-	} else if filter.PatronymicForce {
-		whereConditions = append(whereConditions, `patronymic IS NULL`)
+		if filter.Patronymic.Valid {
+			whereConditions = append(whereConditions, `patronymic % $`+itoa(argIndex))
+			args = append(args, *filter.Patronymic)
+			argIndex++
+		} else {
+			whereConditions = append(whereConditions, `patronymic IS NULL`)
+		}
 	}
 
 	if filter.Address != nil {

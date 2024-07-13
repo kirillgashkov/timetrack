@@ -1,7 +1,9 @@
 package user
 
 import (
+	"database/sql"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -13,33 +15,36 @@ import (
 )
 
 type Handler struct {
-	service *Service
+	service Service
 }
 
-func NewHandler(service *Service) *Handler {
+func NewHandler(service Service) *Handler {
 	return &Handler{service: service}
 }
 
 // PostUsers handles "POST /users".
 func (h *Handler) PostUsers(w http.ResponseWriter, r *http.Request) {
-	var userCreate *timetrackapi.UserCreate
-	if err := apiutil.ReadJSON(r, &userCreate); err != nil {
-		apiutil.MustWriteError(w, "invalid request", http.StatusUnprocessableEntity)
-		return
-	}
-	if userCreate.PassportNumber == "" {
-		apiutil.MustWriteError(w, "missing passport number", http.StatusUnprocessableEntity)
+	req, err := parseAndValidateCreateUserRequest(r)
+	if err != nil {
+		var ve apiutil.ValidationError
+		if errors.As(err, &ve) {
+			apiutil.MustWriteUnprocessableEntity(w, ve)
+			return
+		}
+		apiutil.MustWriteInternalServerError(w, "failed to parse and validate request", err)
 		return
 	}
 
-	u, err := h.service.Create(r.Context(), userCreate.PassportNumber)
+	u, err := h.service.Create(r.Context(), req.PassportNumber)
 	if err != nil {
 		if errors.Is(err, ErrInvalidPassportNumber) {
-			apiutil.MustWriteError(w, "invalid passport number", http.StatusUnprocessableEntity)
+			apiutil.MustWriteUnprocessableEntity(w, apiutil.ValidationError{"invalid passport number"})
 			return
 		}
 		if errors.Is(err, ErrPeopleInfoNotFound) {
-			apiutil.MustWriteError(w, "passport number not issued, expired, or revoked", http.StatusUnprocessableEntity)
+			apiutil.MustWriteUnprocessableEntity(
+				w, apiutil.ValidationError{"passport number not issued, expired, or revoked"},
+			)
 			return
 		}
 		if errors.Is(err, ErrPeopleInfoUnavailable) {
@@ -51,89 +56,168 @@ func (h *Handler) PostUsers(w http.ResponseWriter, r *http.Request) {
 			apiutil.MustWriteError(w, "user already exists", http.StatusBadRequest)
 			return
 		}
-		slog.Error("failed to create user", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to create user", err)
 		return
 	}
 
-	apiutil.MustWriteJSON(w, toUserAPI(u), http.StatusOK)
+	resp := toUserResponse(u)
+	apiutil.MustWriteJSON(w, resp, http.StatusOK)
+}
+
+func parseAndValidateCreateUserRequest(r *http.Request) (*timetrackapi.CreateUserRequest, error) {
+	var req *timetrackapi.CreateUserRequest
+	if err := apiutil.ReadJSON(r, &req); err != nil {
+		return nil, errors.Join(apiutil.ValidationError{"bad JSON"}, err)
+	}
+	if err := validateCreateUserRequest(req); err != nil {
+		return nil, err
+	}
+	return req, nil
+}
+
+func validateCreateUserRequest(req *timetrackapi.CreateUserRequest) error {
+	if req.PassportNumber == "" {
+		return apiutil.ValidationError{"missing passport number"}
+	}
+	return nil
 }
 
 // GetUsers handles "GET /users".
 func (h *Handler) GetUsers(w http.ResponseWriter, r *http.Request, params timetrackapi.GetUsersParams) {
-	filter := &Filter{}
-	if params.Filter != nil {
-		for _, f := range *params.Filter {
-			parts := strings.SplitN(f, "=", 2)
-			if len(parts) != 2 {
-				apiutil.MustWriteError(w, "invalid filter", http.StatusUnprocessableEntity)
-				return
-			}
-			k, v := parts[0], parts[1]
-
-			switch k {
-			case "passport_number":
-				filter.PassportNumber = &v
-			case "surname":
-				filter.Surname = &v
-			case "name":
-				filter.Name = &v
-			case "patronymic":
-				filter.Patronymic = &v
-			case "address":
-				filter.Address = &v
-			default:
-				apiutil.MustWriteError(w, "invalid filter", http.StatusUnprocessableEntity)
-			}
-		}
-	}
-	offset := 0
-	if params.Offset != nil {
-		if *params.Offset < 0 {
-			apiutil.MustWriteError(w, "invalid offset", http.StatusUnprocessableEntity)
-			return
-		}
-		offset = *params.Offset
-	}
-	limit := 50
-	if params.Limit != nil {
-		if *params.Limit < 1 || *params.Limit > 100 {
-			apiutil.MustWriteError(w, "invalid limit", http.StatusUnprocessableEntity)
-			return
-		}
-		limit = *params.Limit
-	}
-
-	users, err := h.service.List(r.Context(), filter, offset, limit)
+	filter, err := parseListUsersRequestFilter(&params)
 	if err != nil {
-		slog.Error("failed to get users", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		var ve apiutil.ValidationError
+		if errors.As(err, &ve) {
+			apiutil.MustWriteUnprocessableEntity(w, ve)
+			return
+		}
+		apiutil.MustWriteInternalServerError(w, "failed to parse request", err)
 		return
 	}
 
-	usersAPI := make([]*timetrackapi.User, 0, len(users))
-	for _, u := range users {
-		usersAPI = append(usersAPI, toUserAPI(&u))
+	if err = validateAndNormalizeListUsersRequest(&params); err != nil {
+		var ve apiutil.ValidationError
+		if errors.As(err, &ve) {
+			apiutil.MustWriteUnprocessableEntity(w, ve)
+			return
+		}
+		apiutil.MustWriteInternalServerError(w, "failed validate and normalize request", err)
+		return
 	}
-	apiutil.MustWriteJSON(w, usersAPI, http.StatusOK)
+
+	users, err := h.service.List(r.Context(), filter, *params.Offset, *params.Limit)
+	if err != nil {
+		apiutil.MustWriteInternalServerError(w, "failed to list users", err)
+		return
+	}
+
+	resp := make([]*timetrackapi.UserResponse, 0, len(users))
+	for _, u := range users {
+		resp = append(resp, toUserResponse(&u))
+	}
+	apiutil.MustWriteJSON(w, resp, http.StatusOK)
+}
+
+func parseListUsersRequestFilter(params *timetrackapi.GetUsersParams) (*Filter, error) {
+	if params.Filter == nil {
+		return &Filter{}, nil
+	}
+
+	e := make([]string, 0)
+
+	filter := &Filter{}
+	for _, f := range *params.Filter {
+		parts := strings.SplitN(f, "=", 2)
+		if len(parts) != 2 {
+			e = append(e, fmt.Sprintf("invalid filter %q, must be in the form of key=value", f))
+		}
+		k, v := parts[0], parts[1]
+
+		switch k {
+		case "passport-number":
+			filter.PassportNumber = &v
+		case "surname":
+			filter.Surname = &v
+		case "name":
+			filter.Name = &v
+		case "patronymic":
+			filter.Patronymic = &sql.NullString{String: v, Valid: true}
+		case "patronymic-null":
+			patronymic := filter.Patronymic
+			if patronymic == nil {
+				patronymic = &sql.NullString{}
+			}
+
+			switch v {
+			case "true":
+				patronymic.Valid = false
+			case "false":
+				patronymic.Valid = true
+			default:
+				e = append(e, fmt.Sprintf("invalid filter %q, value must be 'true' or 'false'", f))
+				continue
+			}
+			filter.Patronymic = patronymic
+		case "address":
+			filter.Address = &v
+		}
+	}
+
+	if len(e) > 0 {
+		return nil, apiutil.ValidationError(e)
+	}
+	return filter, nil
+}
+
+func validateAndNormalizeListUsersRequest(params *timetrackapi.GetUsersParams) error {
+	if err := validateListUsersRequest(params); err != nil {
+		return err
+	}
+	normalizeListUsersRequest(params)
+	return nil
+}
+
+func validateListUsersRequest(params *timetrackapi.GetUsersParams) error {
+	e := make([]string, 0)
+
+	if params.Offset != nil && *params.Offset < 0 {
+		e = append(e, "invalid offset, must be greater than or equal to 0")
+	}
+	if params.Limit != nil && (*params.Limit < 1 || *params.Limit > 100) {
+		e = append(e, "invalid limit, must be between 1 and 100")
+	}
+
+	if len(e) > 0 {
+		return apiutil.ValidationError(e)
+	}
+	return nil
+}
+
+func normalizeListUsersRequest(params *timetrackapi.GetUsersParams) {
+	if params.Offset == nil {
+		params.Offset = intPtr(0)
+	}
+	if params.Limit == nil {
+		params.Limit = intPtr(50)
+	}
 }
 
 // GetUsersCurrent handles "GET /users/current".
 func (h *Handler) GetUsersCurrent(w http.ResponseWriter, r *http.Request) {
-	authUser := auth.MustUserFromContext(r.Context())
+	currentUser := auth.MustUserFromContext(r.Context())
 
-	u, err := h.service.Get(r.Context(), authUser.ID)
+	u, err := h.service.Get(r.Context(), currentUser.ID)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			apiutil.MustWriteError(w, "user not found", http.StatusNotFound)
 			return
 		}
-		slog.Error("failed to get user", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to get user", err)
 		return
 	}
 
-	apiutil.MustWriteJSON(w, toUserAPI(u), http.StatusOK)
+	resp := toUserResponse(u)
+	apiutil.MustWriteJSON(w, resp, http.StatusOK)
 }
 
 // GetUsersId handles "GET /users/{id}".
@@ -146,56 +230,72 @@ func (h *Handler) GetUsersId(w http.ResponseWriter, r *http.Request, id int) {
 			apiutil.MustWriteError(w, "user not found", http.StatusNotFound)
 			return
 		}
-		slog.Error("failed to get user", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to get user", err)
 		return
 	}
 
-	apiutil.MustWriteJSON(w, toUserAPI(u), http.StatusOK)
+	resp := toUserResponse(u)
+	apiutil.MustWriteJSON(w, resp, http.StatusOK)
 }
 
 // PatchUsersId handles "PATCH /users/{id}".
 //
 //nolint:revive
 func (h *Handler) PatchUsersId(w http.ResponseWriter, r *http.Request, id int) {
-	authenticatedUser := auth.MustUserFromContext(r.Context())
-	if authenticatedUser.ID != id {
+	currentUser := auth.MustUserFromContext(r.Context())
+	if currentUser.ID != id {
 		apiutil.MustWriteForbidden(w)
 		return
 	}
 
-	var userUpdate *timetrackapi.UserUpdate
-	if err := apiutil.ReadJSON(r, &userUpdate); err != nil {
-		apiutil.MustWriteError(w, "invalid request", http.StatusUnprocessableEntity)
+	var req *timetrackapi.UpdateUserRequest
+	if err := apiutil.ReadJSON(r, &req); err != nil {
+		apiutil.MustWriteUnprocessableEntity(w, apiutil.ValidationError{"bad JSON"})
 		return
 	}
 
-	u, err := h.service.Update(r.Context(), id, &Update{
-		PassportNumber: userUpdate.PassportNumber,
-		Surname:        userUpdate.Surname,
-		Name:           userUpdate.Name,
-		Patronymic:     userUpdate.Patronymic,
-		Address:        userUpdate.Address,
-	})
+	update := newUpdateFromRequest(req)
+	u, err := h.service.Update(r.Context(), id, update)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			apiutil.MustWriteError(w, "user not found", http.StatusNotFound)
 			return
 		}
-		slog.Error("failed to update user", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to update user", err)
 		return
 	}
 
-	apiutil.MustWriteJSON(w, toUserAPI(u), http.StatusOK)
+	resp := toUserResponse(u)
+	apiutil.MustWriteJSON(w, resp, http.StatusOK)
+}
+
+func newUpdateFromRequest(req *timetrackapi.UpdateUserRequest) *Update {
+	var patronymic *sql.NullString
+	if req.Patronymic != nil {
+		patronymic = &sql.NullString{String: *req.Patronymic, Valid: true}
+	}
+	if req.PatronymicNull != nil {
+		if patronymic == nil {
+			patronymic = &sql.NullString{}
+		}
+		patronymic.Valid = *req.PatronymicNull
+	}
+
+	return &Update{
+		PassportNumber: req.PassportNumber,
+		Surname:        req.Surname,
+		Name:           req.Name,
+		Patronymic:     patronymic,
+		Address:        req.Address,
+	}
 }
 
 // DeleteUsersId handles "DELETE /users/{id}".
 //
 //nolint:revive
 func (h *Handler) DeleteUsersId(w http.ResponseWriter, r *http.Request, id int) {
-	authenticatedUser := auth.MustUserFromContext(r.Context())
-	if authenticatedUser.ID != id {
+	currentUser := auth.MustUserFromContext(r.Context())
+	if currentUser.ID != id {
 		apiutil.MustWriteForbidden(w)
 		return
 	}
@@ -206,21 +306,22 @@ func (h *Handler) DeleteUsersId(w http.ResponseWriter, r *http.Request, id int) 
 			apiutil.MustWriteError(w, "user not found", http.StatusNotFound)
 			return
 		}
-		slog.Error("failed to delete user", "error", err)
-		apiutil.MustWriteInternalServerError(w)
+		apiutil.MustWriteInternalServerError(w, "failed to delete user", err)
 		return
 	}
 
-	apiutil.MustWriteJSON(w, toUserAPI(u), http.StatusOK)
+	resp := toUserResponse(u)
+	apiutil.MustWriteJSON(w, resp, http.StatusOK)
 }
 
-// toUserAPI converts a user domain object to a user API object.
+// toUserResponse converts User to timetrackapi.UserResponse.
 //
 // If we had user passwords or other sensitive information we would filter it
 // from output models. Passport number is considered sensitive information, but
-// it is not filtered because it serves as a username (per app requirements).
-func toUserAPI(u *User) *timetrackapi.User {
-	return &timetrackapi.User{
+// it is not filtered because it serves as a username (per assignment
+// requirements).
+func toUserResponse(u *User) *timetrackapi.UserResponse {
+	return &timetrackapi.UserResponse{
 		Id:             u.ID,
 		PassportNumber: u.PassportNumber,
 		Surname:        u.Surname,
@@ -228,4 +329,8 @@ func toUserAPI(u *User) *timetrackapi.User {
 		Patronymic:     u.Patronymic,
 		Address:        u.Address,
 	}
+}
+
+func intPtr(i int) *int {
+	return &i
 }

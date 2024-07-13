@@ -52,11 +52,11 @@ func mainErr() error {
 		return errors.Join(errors.New("failed to create people info"), err)
 	}
 
-	authService := auth.NewService(db)
-	reportingService := reporting.NewService(db)
-	taskService := task.NewService(db)
-	trackingService := tracking.NewService(db)
-	userService := user.NewService(db, peopleInfoService)
+	authService := auth.NewServiceImpl(db)
+	reportingService := reporting.NewServiceImpl(db)
+	taskService := task.NewServiceImpl(db)
+	trackingService := tracking.NewServiceImpl(db)
+	userService := user.NewServiceImpl(db, peopleInfoService)
 
 	srv, err := api.NewServer(
 		&cfg.Server, authService, reportingService, taskService, trackingService, userService,

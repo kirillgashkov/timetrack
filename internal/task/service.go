@@ -8,8 +8,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Service struct {
-	db *pgxpool.Pool
+var (
+	ErrNotFound = errors.New("task not found")
+)
+
+type Service interface {
+	Create(ctx context.Context, create *CreateTask) (*Task, error)
+	Get(ctx context.Context, id int) (*Task, error)
+	List(ctx context.Context, offset, limit int) ([]Task, error)
+	Update(ctx context.Context, id int, update *UpdateTask) (*Task, error)
+	Delete(ctx context.Context, id int) (*Task, error)
 }
 
 type Task struct {
@@ -17,69 +25,49 @@ type Task struct {
 	Description string
 }
 
-type Create struct {
+type CreateTask struct {
 	Description string
 }
 
-type Update struct {
+type UpdateTask struct {
 	Description *string
 }
 
-var (
-	ErrAlreadyExists = errors.New("task already exists")
-	ErrNotFound      = errors.New("task not found")
-)
-
-func NewService(db *pgxpool.Pool) *Service {
-	return &Service{db: db}
+type ServiceImpl struct {
+	db *pgxpool.Pool
 }
 
-func (s *Service) Create(ctx context.Context, create *Create) (*Task, error) {
-	rows, err := s.db.Query(
-		ctx,
-		`INSERT INTO tasks (description) VALUES ($1) RETURNING id, description`,
-		create.Description,
-	)
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to insert task"), err)
-	}
-	defer rows.Close()
-
-	task, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[Task])
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to collect task"), err)
-	}
-	return &task, nil
+func NewServiceImpl(db *pgxpool.Pool) *ServiceImpl {
+	return &ServiceImpl{db: db}
 }
 
-func (s *Service) Get(ctx context.Context, id int) (*Task, error) {
-	rows, err := s.db.Query(
-		ctx,
-		`SELECT id, description FROM tasks WHERE id = $1`,
-		id,
-	)
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to select task"), err)
-	}
-	defer rows.Close()
-
-	task, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[Task])
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, ErrNotFound
-		}
-		return nil, errors.Join(errors.New("failed to collect task"), err)
-	}
-	return &task, nil
+func (s *ServiceImpl) Create(ctx context.Context, create *CreateTask) (*Task, error) {
+	q := `INSERT INTO tasks (description) VALUES ($1) RETURNING id, description`
+	return s.queryOne(ctx, q, create.Description)
 }
 
-func (s *Service) List(ctx context.Context, offset, limit int) ([]Task, error) {
-	rows, err := s.db.Query(
-		ctx,
-		`SELECT id, description FROM tasks ORDER BY id OFFSET $1 LIMIT $2`,
-		offset,
-		limit,
-	)
+func (s *ServiceImpl) Get(ctx context.Context, id int) (*Task, error) {
+	q := `SELECT id, description FROM tasks WHERE id = $1`
+	return s.queryOne(ctx, q, id)
+}
+
+func (s *ServiceImpl) List(ctx context.Context, offset, limit int) ([]Task, error) {
+	q := `SELECT id, description FROM tasks ORDER BY id OFFSET $1 LIMIT $2`
+	return s.queryAll(ctx, q, offset, limit)
+}
+
+func (s *ServiceImpl) Update(ctx context.Context, id int, update *UpdateTask) (*Task, error) {
+	q := `UPDATE tasks SET description = coalesce($1, description) WHERE id = $2 RETURNING id, description`
+	return s.queryOne(ctx, q, update.Description, id)
+}
+
+func (s *ServiceImpl) Delete(ctx context.Context, id int) (*Task, error) {
+	q := `DELETE FROM tasks WHERE id = $1 RETURNING id, description`
+	return s.queryOne(ctx, q, id)
+}
+
+func (s *ServiceImpl) queryAll(ctx context.Context, query string, args ...any) ([]Task, error) {
+	rows, err := s.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to select tasks"), err)
 	}
@@ -92,44 +80,15 @@ func (s *Service) List(ctx context.Context, offset, limit int) ([]Task, error) {
 	return tasks, nil
 }
 
-func (s *Service) Update(ctx context.Context, id int, update *Update) (*Task, error) {
-	rows, err := s.db.Query(
-		ctx,
-		`UPDATE tasks SET description = coalesce($1, description) WHERE id = $2 RETURNING id, description`,
-		update.Description,
-		id,
-	)
+func (s *ServiceImpl) queryOne(ctx context.Context, query string, args ...any) (*Task, error) {
+	rows, err := s.db.Query(ctx, query, args...)
 	if err != nil {
-		return nil, errors.Join(errors.New("failed to update task"), err)
+		return nil, errors.Join(errors.New("failed to select task"), err)
 	}
 	defer rows.Close()
 
 	task, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[Task])
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, ErrNotFound
-		}
-		return nil, errors.Join(errors.New("failed to collect task"), err)
-	}
-	return &task, nil
-}
-
-func (s *Service) Delete(ctx context.Context, id int) (*Task, error) {
-	rows, err := s.db.Query(
-		ctx,
-		`DELETE FROM tasks WHERE id = $1 RETURNING id, description`,
-		id,
-	)
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to delete task"), err)
-	}
-	defer rows.Close()
-
-	task, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[Task])
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, ErrNotFound
-		}
 		return nil, errors.Join(errors.New("failed to collect task"), err)
 	}
 	return &task, nil

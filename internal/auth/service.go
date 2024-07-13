@@ -9,10 +9,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Service struct {
-	db *pgxpool.Pool
-}
-
 type PasswordGrant struct {
 	Username string
 	Password string
@@ -22,20 +18,25 @@ type Token struct {
 	AccessToken string
 }
 
-type User struct {
-	ID int
-}
-
 var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrInvalidAccessToken = errors.New("invalid access token")
 )
 
-func NewService(db *pgxpool.Pool) *Service {
-	return &Service{db: db}
+type Service interface {
+	Authorize(ctx context.Context, g *PasswordGrant) (*Token, error)
+	UserFromAccessToken(accessToken string) (*User, error)
 }
 
-func (s *Service) Authorize(ctx context.Context, g *PasswordGrant) (*Token, error) {
+type ServiceImpl struct {
+	db *pgxpool.Pool
+}
+
+func NewServiceImpl(db *pgxpool.Pool) *ServiceImpl {
+	return &ServiceImpl{db: db}
+}
+
+func (s *ServiceImpl) Authorize(ctx context.Context, g *PasswordGrant) (*Token, error) {
 	rows, err := s.db.Query(ctx, `SELECT id FROM users WHERE passport_number = $1`, g.Username)
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to select user"), err)
@@ -50,8 +51,7 @@ func (s *Service) Authorize(ctx context.Context, g *PasswordGrant) (*Token, erro
 		return nil, errors.Join(errors.New("failed to collect user"), err)
 	}
 
-	// Pseudo-authentication that checks if the username and password are the
-	// same.
+	// Pseudo-authentication that uses the username as the password.
 	if g.Username != g.Password {
 		return nil, ErrInvalidCredentials
 	}
@@ -60,7 +60,11 @@ func (s *Service) Authorize(ctx context.Context, g *PasswordGrant) (*Token, erro
 	return &Token{AccessToken: strconv.Itoa(id)}, nil
 }
 
-func (s *Service) UserFromAccessToken(accessToken string) (*User, error) {
+type User struct {
+	ID int
+}
+
+func (s *ServiceImpl) UserFromAccessToken(accessToken string) (*User, error) {
 	id, err := strconv.Atoi(accessToken)
 	if err != nil {
 		return nil, errors.Join(ErrInvalidAccessToken, err)

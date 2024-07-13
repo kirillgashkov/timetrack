@@ -13,14 +13,14 @@ paths:
         content:
           application/x-www-form-urlencoded:
             schema:
-              $ref: "#/components/schemas/PasswordGrant"
+              $ref: "#/components/schemas/AuthRequest"
       responses:
         "200":
           description: OK.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Token"
+                $ref: "#/components/schemas/TokenResponse"
         "400":
           description: Error.
           content:
@@ -47,14 +47,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UserCreate"
+              $ref: "#/components/schemas/CreateUserRequest"
       responses:
         "200":
           description: OK.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
+                $ref: "#/components/schemas/UserResponse"
         "400":
           description: Error.
           content:
@@ -113,7 +113,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/User"
+                  $ref: "#/components/schemas/UserResponse"
         "401":
           description: Unauthorized.
           content:
@@ -144,7 +144,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
+                $ref: "#/components/schemas/UserResponse"
         "401":
           description: Unauthorized.
           content:
@@ -178,14 +178,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UserUpdate"
+              $ref: "#/components/schemas/UpdateUserRequest"
       responses:
         "200":
           description: OK.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
+                $ref: "#/components/schemas/UserResponse"
         "401":
           description: Unauthorized.
           content:
@@ -221,7 +221,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
+                $ref: "#/components/schemas/UserResponse"
         "401":
           description: Unauthorized.
           content:
@@ -253,7 +253,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
+                $ref: "#/components/schemas/UserResponse"
         "401":
           description: Unauthorized.
           content:
@@ -268,14 +268,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TaskCreate"
+              $ref: "#/components/schemas/CreateTaskRequest"
       responses:
         "200":
           description: OK.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Task"
+                $ref: "#/components/schemas/TaskResponse"
         "400":
           description: Error.
           content:
@@ -315,7 +315,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Task"
+                  $ref: "#/components/schemas/TaskResponse"
         "401":
           description: Unauthorized.
           content:
@@ -346,7 +346,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Task"
+                $ref: "#/components/schemas/TaskResponse"
         "401":
           description: Unauthorized.
           content:
@@ -380,14 +380,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TaskUpdate"
+              $ref: "#/components/schemas/UpdateTaskRequest"
       responses:
         "200":
           description: OK.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Task"
+                $ref: "#/components/schemas/TaskResponse"
         "401":
           description: Unauthorized.
           content:
@@ -423,7 +423,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Task"
+                $ref: "#/components/schemas/TaskResponse"
         "401":
           description: Unauthorized.
           content:
@@ -524,7 +524,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ReportIn"
+              $ref: "#/components/schemas/ReportRequest"
       responses:
         "200":
           description: OK.
@@ -533,7 +533,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/ReportTask"
+                  $ref: "#/components/schemas/ReportTaskResponse"
         "401":
           description: Unauthorized.
           content:
@@ -575,7 +575,7 @@ components:
         status:
           type: string
 
-    User:
+    UserResponse:
       type: object
       required: [id, passportNumber, surname, name, address]
       properties:
@@ -592,14 +592,14 @@ components:
         address:
           type: string
 
-    UserCreate:
+    CreateUserRequest:
       type: object
       required: [passportNumber]
       properties:
         passportNumber:
           type: string
 
-    UserUpdate:
+    UpdateUserRequest:
         type: object
         properties:
           passportNumber:
@@ -610,9 +610,11 @@ components:
             type: string
           patronymic:
             type: string
+          patronymicNull:
+            type: boolean
           address:
             type: string
-    Task:
+    TaskResponse:
       type: object
       required: [id, description]
       properties:
@@ -621,20 +623,20 @@ components:
         description:
           type: string
 
-    TaskCreate:
+    CreateTaskRequest:
       type: object
       required: [description]
       properties:
         description:
           type: string
 
-    TaskUpdate:
+    UpdateTaskRequest:
       type: object
       properties:
         description:
           type: string
 
-    ReportIn:
+    ReportRequest:
       type: object
       required: [from, to]
       properties:
@@ -645,7 +647,7 @@ components:
           type: string
           format: date-time
 
-    ReportDuration:
+    ReportDurationResponse:
       type: object
       required: [hours, minutes]
       properties:
@@ -654,16 +656,16 @@ components:
         minutes:
           type: integer
 
-    ReportTask:
+    ReportTaskResponse:
       type: object
       required: [id, description, start, stop]
       properties:
         task:
-          $ref: "#/components/schemas/Task"
+          $ref: "#/components/schemas/TaskResponse"
         duration:
-          $ref: "#/components/schemas/ReportDuration"
+          $ref: "#/components/schemas/ReportDurationResponse"
 
-    PasswordGrant:
+    AuthRequest:
       description: Password grant (https://datatracker.ietf.org/doc/html/rfc6749#section-4.3).
       type: object
       required: [grant_type, username, password]
@@ -677,7 +679,7 @@ components:
           type: string
           format: password
 
-    Token:
+    TokenResponse:
       description: Token (https://datatracker.ietf.org/doc/html/rfc6749#section-5.1).
       type: object
       required: [access_token, token_type]

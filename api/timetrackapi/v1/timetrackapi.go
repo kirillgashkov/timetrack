@@ -18,15 +18,35 @@ const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
-// Defines values for PasswordGrantGrantType.
+// Defines values for AuthRequestGrantType.
 const (
-	Password PasswordGrantGrantType = "password"
+	Password AuthRequestGrantType = "password"
 )
 
-// Defines values for TokenTokenType.
+// Defines values for TokenResponseTokenType.
 const (
-	Bearer TokenTokenType = "Bearer"
+	Bearer TokenResponseTokenType = "Bearer"
 )
+
+// AuthRequest Password grant (https://datatracker.ietf.org/doc/html/rfc6749#section-4.3).
+type AuthRequest struct {
+	GrantType AuthRequestGrantType `json:"grant_type"`
+	Password  string               `json:"password"`
+	Username  string               `json:"username"`
+}
+
+// AuthRequestGrantType defines model for AuthRequest.GrantType.
+type AuthRequestGrantType string
+
+// CreateTaskRequest defines model for CreateTaskRequest.
+type CreateTaskRequest struct {
+	Description string `json:"description"`
+}
+
+// CreateUserRequest defines model for CreateUserRequest.
+type CreateUserRequest struct {
+	PassportNumber string `json:"passportNumber"`
+}
 
 // Error defines model for Error.
 type Error struct {
@@ -38,81 +58,62 @@ type Health struct {
 	Status string `json:"status"`
 }
 
-// PasswordGrant Password grant (https://datatracker.ietf.org/doc/html/rfc6749#section-4.3).
-type PasswordGrant struct {
-	GrantType PasswordGrantGrantType `json:"grant_type"`
-	Password  string                 `json:"password"`
-	Username  string                 `json:"username"`
-}
-
-// PasswordGrantGrantType defines model for PasswordGrant.GrantType.
-type PasswordGrantGrantType string
-
-// ReportDuration defines model for ReportDuration.
-type ReportDuration struct {
+// ReportDurationResponse defines model for ReportDurationResponse.
+type ReportDurationResponse struct {
 	Hours   int `json:"hours"`
 	Minutes int `json:"minutes"`
 }
 
-// ReportIn defines model for ReportIn.
-type ReportIn struct {
+// ReportRequest defines model for ReportRequest.
+type ReportRequest struct {
 	From time.Time `json:"from"`
 	To   time.Time `json:"to"`
 }
 
-// ReportTask defines model for ReportTask.
-type ReportTask struct {
-	Duration *ReportDuration `json:"duration,omitempty"`
-	Task     *Task           `json:"task,omitempty"`
+// ReportTaskResponse defines model for ReportTaskResponse.
+type ReportTaskResponse struct {
+	Duration *ReportDurationResponse `json:"duration,omitempty"`
+	Task     *TaskResponse           `json:"task,omitempty"`
 }
 
-// Task defines model for Task.
-type Task struct {
+// TaskResponse defines model for TaskResponse.
+type TaskResponse struct {
 	Description string `json:"description"`
 	Id          int    `json:"id"`
 }
 
-// TaskCreate defines model for TaskCreate.
-type TaskCreate struct {
-	Description string `json:"description"`
+// TokenResponse Token (https://datatracker.ietf.org/doc/html/rfc6749#section-5.1).
+type TokenResponse struct {
+	AccessToken string                 `json:"access_token"`
+	TokenType   TokenResponseTokenType `json:"token_type"`
 }
 
-// TaskUpdate defines model for TaskUpdate.
-type TaskUpdate struct {
+// TokenResponseTokenType defines model for TokenResponse.TokenType.
+type TokenResponseTokenType string
+
+// UpdateTaskRequest defines model for UpdateTaskRequest.
+type UpdateTaskRequest struct {
 	Description *string `json:"description,omitempty"`
 }
 
-// Token Token (https://datatracker.ietf.org/doc/html/rfc6749#section-5.1).
-type Token struct {
-	AccessToken string         `json:"access_token"`
-	TokenType   TokenTokenType `json:"token_type"`
+// UpdateUserRequest defines model for UpdateUserRequest.
+type UpdateUserRequest struct {
+	Address        *string `json:"address,omitempty"`
+	Name           *string `json:"name,omitempty"`
+	PassportNumber *string `json:"passportNumber,omitempty"`
+	Patronymic     *string `json:"patronymic,omitempty"`
+	PatronymicNull *bool   `json:"patronymicNull,omitempty"`
+	Surname        *string `json:"surname,omitempty"`
 }
 
-// TokenTokenType defines model for Token.TokenType.
-type TokenTokenType string
-
-// User defines model for User.
-type User struct {
+// UserResponse defines model for UserResponse.
+type UserResponse struct {
 	Address        string  `json:"address"`
 	Id             int     `json:"id"`
 	Name           string  `json:"name"`
 	PassportNumber string  `json:"passportNumber"`
 	Patronymic     *string `json:"patronymic,omitempty"`
 	Surname        string  `json:"surname"`
-}
-
-// UserCreate defines model for UserCreate.
-type UserCreate struct {
-	PassportNumber string `json:"passportNumber"`
-}
-
-// UserUpdate defines model for UserUpdate.
-type UserUpdate struct {
-	Address        *string `json:"address,omitempty"`
-	Name           *string `json:"name,omitempty"`
-	PassportNumber *string `json:"passportNumber,omitempty"`
-	Patronymic     *string `json:"patronymic,omitempty"`
-	Surname        *string `json:"surname,omitempty"`
 }
 
 // GetTasksParams defines parameters for GetTasks.
@@ -130,22 +131,22 @@ type GetUsersParams struct {
 }
 
 // PostAuthFormdataRequestBody defines body for PostAuth for application/x-www-form-urlencoded ContentType.
-type PostAuthFormdataRequestBody = PasswordGrant
+type PostAuthFormdataRequestBody = AuthRequest
 
 // PostTasksJSONRequestBody defines body for PostTasks for application/json ContentType.
-type PostTasksJSONRequestBody = TaskCreate
+type PostTasksJSONRequestBody = CreateTaskRequest
 
 // PatchTasksIdJSONRequestBody defines body for PatchTasksId for application/json ContentType.
-type PatchTasksIdJSONRequestBody = TaskUpdate
+type PatchTasksIdJSONRequestBody = UpdateTaskRequest
 
 // PostUsersJSONRequestBody defines body for PostUsers for application/json ContentType.
-type PostUsersJSONRequestBody = UserCreate
+type PostUsersJSONRequestBody = CreateUserRequest
 
 // PatchUsersIdJSONRequestBody defines body for PatchUsersId for application/json ContentType.
-type PatchUsersIdJSONRequestBody = UserUpdate
+type PatchUsersIdJSONRequestBody = UpdateUserRequest
 
 // PostUsersIdReportJSONRequestBody defines body for PostUsersIdReport for application/json ContentType.
-type PostUsersIdReportJSONRequestBody = ReportIn
+type PostUsersIdReportJSONRequestBody = ReportRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {

@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"net/http"
 	"strings"
 
@@ -11,54 +10,60 @@ import (
 )
 
 type Middleware struct {
-	service *Service
+	service Service
 }
 
-type userContextKeyType struct{}
-
-var userContextKey = userContextKeyType{}
-
-func NewMiddleware(service *Service) *Middleware {
+func NewMiddleware(service Service) *Middleware {
 	return &Middleware{service: service}
 }
 
 func (m *Middleware) Authenticated(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			mustWriteUnauthorized(w, "missing Authorization header")
-			return
-		}
-
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-			mustWriteUnauthorized(w, "invalid Authorization header, expected Bearer token")
-			return
-		}
-		accessToken := parts[1]
-
-		user, err := m.service.UserFromAccessToken(accessToken)
+		t, err := parseAccessToken(r)
 		if err != nil {
-			if errors.Is(err, ErrInvalidAccessToken) {
-				mustWriteUnauthorized(w, "invalid access token")
+			var ve apiutil.ValidationError
+			if errors.As(err, &ve) {
+				apiutil.MustWriteUnprocessableEntity(w, ve)
 				return
 			}
-			slog.Error("failed to get user by access token", "error", err)
-			apiutil.MustWriteInternalServerError(w)
+			apiutil.MustWriteInternalServerError(w, "failed to parse access token", err)
 			return
 		}
 
-		ctx := ContextWithUser(r.Context(), user)
-		r = r.WithContext(ctx)
+		u, err := m.service.UserFromAccessToken(t)
+		if err != nil {
+			if errors.Is(err, ErrInvalidAccessToken) {
+				apiutil.MustWriteUnauthorized(w, "invalid access token")
+				return
+			}
+			apiutil.MustWriteInternalServerError(w, "failed to get user from access token", err)
+			return
+		}
 
+		ctx := ContextWithUser(r.Context(), u)
+		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
 	})
 }
 
-func mustWriteUnauthorized(w http.ResponseWriter, m string) {
-	w.Header().Set("WWW-Authenticate", "Bearer")
-	apiutil.MustWriteError(w, m, http.StatusUnauthorized)
+func parseAccessToken(r *http.Request) (string, error) {
+	header := r.Header.Get("Authorization")
+	if header == "" {
+		return "", apiutil.ValidationError{"missing Authorization header"}
+	}
+
+	parts := strings.SplitN(header, " ", 2)
+	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
+		return "", apiutil.ValidationError{"invalid Authorization header, expected Bearer token"}
+	}
+
+	accessToken := parts[1]
+	return accessToken, nil
 }
+
+type userContextKeyType struct{}
+
+var userContextKey = userContextKeyType{}
 
 func ContextWithUser(ctx context.Context, user *User) context.Context {
 	return context.WithValue(ctx, userContextKey, user)
