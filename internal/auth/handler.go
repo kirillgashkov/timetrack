@@ -18,7 +18,7 @@ func NewHandler(service Service) *Handler {
 
 // PostAuth handles "POST /auth".
 func (h *Handler) PostAuth(w http.ResponseWriter, r *http.Request) {
-	req, err := parseAndValidatePasswordGrant(r)
+	req, err := parseAndValidateAuthRequest(r)
 	if err != nil {
 		var ve apiutil.ValidationError
 		if errors.As(err, &ve) {
@@ -44,18 +44,18 @@ func (h *Handler) PostAuth(w http.ResponseWriter, r *http.Request) {
 	apiutil.MustWriteJSON(w, resp, http.StatusOK)
 }
 
-func parseAndValidatePasswordGrant(r *http.Request) (*timetrackapi.PasswordGrant, error) {
-	req, err := parsePasswordGrant(r)
+func parseAndValidateAuthRequest(r *http.Request) (*timetrackapi.AuthRequest, error) {
+	req, err := parseAuthRequest(r)
 	if err != nil {
 		return nil, err
 	}
-	if err = validatePasswordGrant(req); err != nil {
+	if err = validateAuthRequest(req); err != nil {
 		return nil, err
 	}
 	return req, nil
 }
 
-func parsePasswordGrant(r *http.Request) (*timetrackapi.PasswordGrant, error) {
+func parseAuthRequest(r *http.Request) (*timetrackapi.AuthRequest, error) {
 	if err := r.ParseForm(); err != nil {
 		return nil, errors.Join(apiutil.ValidationError{"bad form"}, err)
 	}
@@ -65,14 +65,14 @@ func parsePasswordGrant(r *http.Request) (*timetrackapi.PasswordGrant, error) {
 		return nil, apiutil.ValidationError{"unsupported grant type"}
 	}
 
-	return &timetrackapi.PasswordGrant{
+	return &timetrackapi.AuthRequest{
 		GrantType: grantType,
 		Username:  r.FormValue("username"),
 		Password:  r.FormValue("password"),
 	}, nil
 }
 
-func validatePasswordGrant(req *timetrackapi.PasswordGrant) error {
+func validateAuthRequest(req *timetrackapi.AuthRequest) error {
 	m := make([]string, 0)
 	if req.Username == "" {
 		m = append(m, "missing username")

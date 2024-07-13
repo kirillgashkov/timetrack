@@ -38,14 +38,14 @@ type Health struct {
 	Status string `json:"status"`
 }
 
-// PasswordGrant Password grant (https://datatracker.ietf.org/doc/html/rfc6749#section-4.3).
-type PasswordGrant struct {
+// AuthRequest Password grant (https://datatracker.ietf.org/doc/html/rfc6749#section-4.3).
+type AuthRequest struct {
 	GrantType PasswordGrantGrantType `json:"grant_type"`
 	Password  string                 `json:"password"`
 	Username  string                 `json:"username"`
 }
 
-// PasswordGrantGrantType defines model for PasswordGrant.GrantType.
+// PasswordGrantGrantType defines model for AuthRequest.GrantType.
 type PasswordGrantGrantType string
 
 // ReportDuration defines model for ReportDuration.
@@ -130,7 +130,7 @@ type GetUsersParams struct {
 }
 
 // PostAuthFormdataRequestBody defines body for PostAuth for application/x-www-form-urlencoded ContentType.
-type PostAuthFormdataRequestBody = PasswordGrant
+type PostAuthFormdataRequestBody = AuthRequest
 
 // PostTasksJSONRequestBody defines body for PostTasks for application/json ContentType.
 type PostTasksJSONRequestBody = TaskCreate
