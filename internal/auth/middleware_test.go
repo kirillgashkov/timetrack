@@ -16,6 +16,15 @@ func TestAuthenticated(t *testing.T) {
 		expectedBody            string
 	}{
 		{
+			"ok",
+			stringPtr("Bearer valid_token"),
+			func(string) (*User, error) {
+				return &User{ID: 1}, nil
+			},
+			http.StatusOK,
+			"ok",
+		},
+		{
 			"missing Authorization header",
 			nil,
 			nil,
@@ -38,15 +47,6 @@ func TestAuthenticated(t *testing.T) {
 			http.StatusUnauthorized,
 			`{"message":"invalid access token"}`,
 		},
-		{
-			"success",
-			stringPtr("Bearer valid_token"),
-			func(string) (*User, error) {
-				return &User{ID: 1}, nil
-			},
-			http.StatusOK,
-			"success",
-		},
 	}
 
 	for _, tt := range tests {
@@ -56,7 +56,7 @@ func TestAuthenticated(t *testing.T) {
 			}
 			middleware := NewMiddleware(mockService)
 			handler := middleware.Authenticated(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-				_, _ = w.Write([]byte("success"))
+				_, _ = w.Write([]byte("ok"))
 			}))
 
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
