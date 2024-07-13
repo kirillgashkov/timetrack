@@ -45,23 +45,21 @@ func (h *Handler) PostUsersIdReport(w http.ResponseWriter, r *http.Request, id i
 		return
 	}
 
-	reportTasksAPI := make([]*timetrackapi.ReportTask, 0, len(reportTasks))
+	resp := make([]*timetrackapi.ReportTaskResponse, 0, len(reportTasks))
 	for _, t := range reportTasks {
-		hours := int(t.Duration.Hours())
-		minutes := int(t.Duration.Minutes()) % 60
-
-		reportTasksAPI = append(reportTasksAPI, &timetrackapi.ReportTask{
+		reportTaskResp := &timetrackapi.ReportTaskResponse{
 			Task: &timetrackapi.TaskResponse{
 				Id:          t.Task.ID,
 				Description: t.Task.Description,
 			},
-			Duration: &timetrackapi.ReportDuration{
-				Hours:   hours,
-				Minutes: minutes,
+			Duration: &timetrackapi.ReportDurationResponse{
+				Hours:   int(t.Duration.Hours()),
+				Minutes: int(t.Duration.Minutes()) % 60,
 			},
-		})
+		}
+		resp = append(resp, reportTaskResp)
 	}
-	apiutil.MustWriteJSON(w, reportTasksAPI, http.StatusOK)
+	apiutil.MustWriteJSON(w, resp, http.StatusOK)
 }
 
 func parseAndValidateReportRequest(r *http.Request) (*timetrackapi.ReportRequest, error) {

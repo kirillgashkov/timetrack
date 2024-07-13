@@ -18,15 +18,35 @@ const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
-// Defines values for PasswordGrantGrantType.
+// Defines values for AuthRequestGrantType.
 const (
-	Password PasswordGrantGrantType = "password"
+	Password AuthRequestGrantType = "password"
 )
 
-// Defines values for TokenTokenType.
+// Defines values for TokenResponseTokenType.
 const (
-	Bearer TokenTokenType = "Bearer"
+	Bearer TokenResponseTokenType = "Bearer"
 )
+
+// AuthRequest Password grant (https://datatracker.ietf.org/doc/html/rfc6749#section-4.3).
+type AuthRequest struct {
+	GrantType AuthRequestGrantType `json:"grant_type"`
+	Password  string               `json:"password"`
+	Username  string               `json:"username"`
+}
+
+// AuthRequestGrantType defines model for AuthRequest.GrantType.
+type AuthRequestGrantType string
+
+// CreateTaskRequest defines model for CreateTaskRequest.
+type CreateTaskRequest struct {
+	Description string `json:"description"`
+}
+
+// CreateUserRequest defines model for CreateUserRequest.
+type CreateUserRequest struct {
+	PassportNumber string `json:"passportNumber"`
+}
 
 // Error defines model for Error.
 type Error struct {
@@ -38,18 +58,8 @@ type Health struct {
 	Status string `json:"status"`
 }
 
-// AuthRequest Password grant (https://datatracker.ietf.org/doc/html/rfc6749#section-4.3).
-type AuthRequest struct {
-	GrantType PasswordGrantGrantType `json:"grant_type"`
-	Password  string                 `json:"password"`
-	Username  string                 `json:"username"`
-}
-
-// PasswordGrantGrantType defines model for AuthRequest.GrantType.
-type PasswordGrantGrantType string
-
-// ReportDuration defines model for ReportDuration.
-type ReportDuration struct {
+// ReportDurationResponse defines model for ReportDurationResponse.
+type ReportDurationResponse struct {
 	Hours   int `json:"hours"`
 	Minutes int `json:"minutes"`
 }
@@ -60,10 +70,10 @@ type ReportRequest struct {
 	To   time.Time `json:"to"`
 }
 
-// ReportTask defines model for ReportTask.
-type ReportTask struct {
-	Duration *ReportDuration `json:"duration,omitempty"`
-	Task     *TaskResponse   `json:"task,omitempty"`
+// ReportTaskResponse defines model for ReportTaskResponse.
+type ReportTaskResponse struct {
+	Duration *ReportDurationResponse `json:"duration,omitempty"`
+	Task     *TaskResponse           `json:"task,omitempty"`
 }
 
 // TaskResponse defines model for TaskResponse.
@@ -72,24 +82,29 @@ type TaskResponse struct {
 	Id          int    `json:"id"`
 }
 
-// CreateTaskRequest defines model for CreateTaskRequest.
-type CreateTaskRequest struct {
-	Description string `json:"description"`
+// TokenResponse Token (https://datatracker.ietf.org/doc/html/rfc6749#section-5.1).
+type TokenResponse struct {
+	AccessToken string                 `json:"access_token"`
+	TokenType   TokenResponseTokenType `json:"token_type"`
 }
+
+// TokenResponseTokenType defines model for TokenResponse.TokenType.
+type TokenResponseTokenType string
 
 // UpdateTaskRequest defines model for UpdateTaskRequest.
 type UpdateTaskRequest struct {
 	Description *string `json:"description,omitempty"`
 }
 
-// Token Token (https://datatracker.ietf.org/doc/html/rfc6749#section-5.1).
-type Token struct {
-	AccessToken string         `json:"access_token"`
-	TokenType   TokenTokenType `json:"token_type"`
+// UpdateUserRequest defines model for UpdateUserRequest.
+type UpdateUserRequest struct {
+	Address        *string `json:"address,omitempty"`
+	Name           *string `json:"name,omitempty"`
+	PassportNumber *string `json:"passportNumber,omitempty"`
+	Patronymic     *string `json:"patronymic,omitempty"`
+	PatronymicNull *bool   `json:"patronymicNull,omitempty"`
+	Surname        *string `json:"surname,omitempty"`
 }
-
-// TokenTokenType defines model for Token.TokenType.
-type TokenTokenType string
 
 // UserResponse defines model for UserResponse.
 type UserResponse struct {
@@ -99,21 +114,6 @@ type UserResponse struct {
 	PassportNumber string  `json:"passportNumber"`
 	Patronymic     *string `json:"patronymic,omitempty"`
 	Surname        string  `json:"surname"`
-}
-
-// CreateUserRequest defines model for CreateUserRequest.
-type CreateUserRequest struct {
-	PassportNumber string `json:"passportNumber"`
-}
-
-// UpdateUserRequest defines model for UpdateUserRequest.
-type UpdateUserRequest struct {
-	Address        *string `json:"address,omitempty"`
-	Name           *string `json:"name,omitempty"`
-	PassportNumber *string `json:"passportNumber,omitempty"`
-	Patronymic     *string `json:"patronymic,omitempty"`
-	PatronymicNull     *bool `json:"patronymicNull,omitempty"`
-	Surname        *string `json:"surname,omitempty"`
 }
 
 // GetTasksParams defines parameters for GetTasks.

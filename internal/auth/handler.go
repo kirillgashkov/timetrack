@@ -40,7 +40,7 @@ func (h *Handler) PostAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := &timetrackapi.Token{AccessToken: t.AccessToken, TokenType: timetrackapi.Bearer}
+	resp := &timetrackapi.TokenResponse{AccessToken: t.AccessToken, TokenType: timetrackapi.Bearer}
 	apiutil.MustWriteJSON(w, resp, http.StatusOK)
 }
 
