@@ -30,7 +30,7 @@ func (h *Handler) PostAuth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	g := &PasswordGrant{Username: req.Username, Password: req.Password}
-	token, err := h.service.Authorize(r.Context(), g)
+	t, err := h.service.Authorize(r.Context(), g)
 	if err != nil {
 		if errors.Is(err, ErrInvalidCredentials) {
 			apiutil.MustWriteError(w, "invalid credentials", http.StatusBadRequest)
@@ -40,8 +40,8 @@ func (h *Handler) PostAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	t := &timetrackapi.Token{AccessToken: token.AccessToken, TokenType: timetrackapi.Bearer}
-	apiutil.MustWriteJSON(w, t, http.StatusOK)
+	resp := &timetrackapi.Token{AccessToken: t.AccessToken, TokenType: timetrackapi.Bearer}
+	apiutil.MustWriteJSON(w, resp, http.StatusOK)
 }
 
 func parseAndValidateRequest(r *http.Request) (*request, error) {
