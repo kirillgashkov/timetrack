@@ -44,24 +44,24 @@ func (h *Handler) PostAuth(w http.ResponseWriter, r *http.Request) {
 	apiutil.MustWriteJSON(w, t, http.StatusOK)
 }
 
-func parseAndValidateRequest(r *http.Request) (*Request, error) {
-	req, err := ParseRequest(r)
+func parseAndValidateRequest(r *http.Request) (*request, error) {
+	req, err := parseRequest(r)
 	if err != nil {
 		return nil, err
 	}
-	if err = req.Validate(); err != nil {
+	if err = req.validate(); err != nil {
 		return nil, err
 	}
 	return req, nil
 }
 
-type Request struct {
+type request struct {
 	GrantType string
 	Username  string
 	Password  string
 }
 
-func ParseRequest(r *http.Request) (*Request, error) {
+func parseRequest(r *http.Request) (*request, error) {
 	if err := r.ParseForm(); err != nil {
 		return nil, errors.Join(apiutil.ValidationError([]string{"bad form"}), err)
 	}
@@ -69,10 +69,10 @@ func ParseRequest(r *http.Request) (*Request, error) {
 	username := r.FormValue("username")
 	password := r.FormValue("password")
 
-	return &Request{GrantType: grantType, Username: username, Password: password}, nil
+	return &request{GrantType: grantType, Username: username, Password: password}, nil
 }
 
-func (r *Request) Validate() error {
+func (r *request) validate() error {
 	m := make([]string, 0)
 	if r.GrantType != string(timetrackapi.Password) {
 		m = append(m, "invalid grant type")

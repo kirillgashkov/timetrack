@@ -19,7 +19,7 @@ func NewMiddleware(service Service) *Middleware {
 
 func (m *Middleware) Authenticated(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t, err := ParseAccessToken(r)
+		t, err := parseAccessToken(r)
 		if err != nil {
 			var ve apiutil.ValidationError
 			if errors.As(err, &ve) {
@@ -46,7 +46,7 @@ func (m *Middleware) Authenticated(next http.Handler) http.Handler {
 	})
 }
 
-func ParseAccessToken(r *http.Request) (string, error) {
+func parseAccessToken(r *http.Request) (string, error) {
 	header := r.Header.Get("Authorization")
 	if header == "" {
 		return "", apiutil.ValidationError{"missing Authorization header"}

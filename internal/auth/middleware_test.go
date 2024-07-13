@@ -32,7 +32,7 @@ func TestAuthenticated(t *testing.T) {
 		{
 			"invalid access token",
 			stringPtr("Bearer invalid_token"),
-			func(token string) (*User, error) {
+			func(string) (*User, error) {
 				return nil, ErrInvalidAccessToken
 			},
 			http.StatusUnauthorized,
@@ -41,7 +41,7 @@ func TestAuthenticated(t *testing.T) {
 		{
 			"success",
 			stringPtr("Bearer valid_token"),
-			func(token string) (*User, error) {
+			func(string) (*User, error) {
 				return &User{ID: 1}, nil
 			},
 			http.StatusOK,
@@ -55,7 +55,7 @@ func TestAuthenticated(t *testing.T) {
 				UserFromAccessTokenFunc: tt.userFromAccessTokenFunc,
 			}
 			middleware := NewMiddleware(mockService)
-			handler := middleware.Authenticated(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handler := middleware.Authenticated(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				_, _ = w.Write([]byte("success"))
 			}))
 
