@@ -183,7 +183,7 @@ func validateListUsersRequest(params *timetrackapi.GetUsersParams) error {
 	if params.Offset != nil && *params.Offset < 0 {
 		e = append(e, "invalid offset, must be greater than or equal to 0")
 	}
-	if params.Limit != nil && *params.Limit < 1 || *params.Limit > 100 {
+	if params.Limit != nil && (*params.Limit < 1 || *params.Limit > 100) {
 		e = append(e, "invalid limit, must be between 1 and 100")
 	}
 
