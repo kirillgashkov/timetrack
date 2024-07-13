@@ -30,6 +30,13 @@ func TestPostAuth(t *testing.T) {
 			`{"access_token":"valid_token","token_type":"Bearer"}`,
 		},
 		{
+			"unsupported grant type",
+			url.Values{"grant_type": {"unsupported"}, "username": {"username"}, "password": {"password"}},
+			nil,
+			http.StatusUnprocessableEntity,
+			`{"message":"unsupported grant type"}`,
+		},
+		{
 			"missing username",
 			url.Values{"grant_type": {string(timetrackapi.Password)}, "password": {"password"}},
 			nil,
@@ -42,13 +49,6 @@ func TestPostAuth(t *testing.T) {
 			nil,
 			http.StatusUnprocessableEntity,
 			`{"message":"missing password"}`,
-		},
-		{
-			"invalid grant type",
-			url.Values{"grant_type": {"invalid"}, "username": {"username"}, "password": {"password"}},
-			nil,
-			http.StatusUnprocessableEntity,
-			`{"message":"invalid grant type"}`,
 		},
 		{
 			"invalid credentials",
