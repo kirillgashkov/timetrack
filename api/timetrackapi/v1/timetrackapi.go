@@ -63,11 +63,11 @@ type ReportRequest struct {
 // ReportTask defines model for ReportTask.
 type ReportTask struct {
 	Duration *ReportDuration `json:"duration,omitempty"`
-	Task     *Task           `json:"task,omitempty"`
+	Task     *TaskResponse   `json:"task,omitempty"`
 }
 
-// Task defines model for Task.
-type Task struct {
+// TaskResponse defines model for TaskResponse.
+type TaskResponse struct {
 	Description string `json:"description"`
 	Id          int    `json:"id"`
 }
@@ -91,8 +91,8 @@ type Token struct {
 // TokenTokenType defines model for Token.TokenType.
 type TokenTokenType string
 
-// User defines model for User.
-type User struct {
+// UserResponse defines model for UserResponse.
+type UserResponse struct {
 	Address        string  `json:"address"`
 	Id             int     `json:"id"`
 	Name           string  `json:"name"`
@@ -101,17 +101,18 @@ type User struct {
 	Surname        string  `json:"surname"`
 }
 
-// UserCreate defines model for UserCreate.
-type UserCreate struct {
+// CreateUserRequest defines model for CreateUserRequest.
+type CreateUserRequest struct {
 	PassportNumber string `json:"passportNumber"`
 }
 
-// UserUpdate defines model for UserUpdate.
-type UserUpdate struct {
+// UpdateUserRequest defines model for UpdateUserRequest.
+type UpdateUserRequest struct {
 	Address        *string `json:"address,omitempty"`
 	Name           *string `json:"name,omitempty"`
 	PassportNumber *string `json:"passportNumber,omitempty"`
 	Patronymic     *string `json:"patronymic,omitempty"`
+	PatronymicNull     *bool `json:"patronymicNull,omitempty"`
 	Surname        *string `json:"surname,omitempty"`
 }
 
@@ -139,10 +140,10 @@ type PostTasksJSONRequestBody = CreateTaskRequest
 type PatchTasksIdJSONRequestBody = UpdateTaskRequest
 
 // PostUsersJSONRequestBody defines body for PostUsers for application/json ContentType.
-type PostUsersJSONRequestBody = UserCreate
+type PostUsersJSONRequestBody = CreateUserRequest
 
 // PatchUsersIdJSONRequestBody defines body for PatchUsersId for application/json ContentType.
-type PatchUsersIdJSONRequestBody = UserUpdate
+type PatchUsersIdJSONRequestBody = UpdateUserRequest
 
 // PostUsersIdReportJSONRequestBody defines body for PostUsersIdReport for application/json ContentType.
 type PostUsersIdReportJSONRequestBody = ReportRequest

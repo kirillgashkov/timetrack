@@ -43,7 +43,7 @@ func (h *Handler) PostTasks(w http.ResponseWriter, r *http.Request) {
 // For simplicity, we don't use user in the task domain, but we do use them in
 // other domains.
 func (h *Handler) GetTasks(w http.ResponseWriter, r *http.Request, params timetrackapi.GetTasksParams) {
-	if err := validateAndNormalizeGetTasksRequest(&params); err != nil {
+	if err := validateAndNormalizeListTasksRequest(&params); err != nil {
 		var ve apiutil.ValidationError
 		if errors.As(err, &ve) {
 			apiutil.MustWriteUnprocessableEntity(w, ve)
@@ -59,22 +59,22 @@ func (h *Handler) GetTasks(w http.ResponseWriter, r *http.Request, params timetr
 		return
 	}
 
-	resp := make([]*timetrackapi.Task, 0, len(tasks))
+	resp := make([]*timetrackapi.TaskResponse, 0, len(tasks))
 	for _, t := range tasks {
 		resp = append(resp, toTaskResponse(&t))
 	}
 	apiutil.MustWriteJSON(w, resp, http.StatusOK)
 }
 
-func validateAndNormalizeGetTasksRequest(params *timetrackapi.GetTasksParams) error {
-	if err := validateGetTasksRequest(*params); err != nil {
+func validateAndNormalizeListTasksRequest(params *timetrackapi.GetTasksParams) error {
+	if err := validateListTasksRequest(*params); err != nil {
 		return err
 	}
-	normalizeGetTasksRequest(params)
+	normalizeListTasksRequest(params)
 	return nil
 }
 
-func validateGetTasksRequest(params timetrackapi.GetTasksParams) error {
+func validateListTasksRequest(params timetrackapi.GetTasksParams) error {
 	e := make([]string, 0)
 
 	if params.Offset != nil && *params.Offset < 0 {
@@ -90,7 +90,7 @@ func validateGetTasksRequest(params timetrackapi.GetTasksParams) error {
 	return nil
 }
 
-func normalizeGetTasksRequest(params *timetrackapi.GetTasksParams) {
+func normalizeListTasksRequest(params *timetrackapi.GetTasksParams) {
 	if params.Offset == nil {
 		params.Offset = intPtr(0)
 	}
@@ -168,8 +168,8 @@ func (h *Handler) DeleteTasksId(w http.ResponseWriter, r *http.Request, id int) 
 	apiutil.MustWriteJSON(w, resp, http.StatusOK)
 }
 
-func toTaskResponse(t *Task) *timetrackapi.Task {
-	return &timetrackapi.Task{
+func toTaskResponse(t *Task) *timetrackapi.TaskResponse {
+	return &timetrackapi.TaskResponse{
 		Id:          t.ID,
 		Description: t.Description,
 	}

@@ -610,6 +610,8 @@ components:
             type: string
           patronymic:
             type: string
+          patronymicNull:
+            type: boolean
           address:
             type: string
     Task:

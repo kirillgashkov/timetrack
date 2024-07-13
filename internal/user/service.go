@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"strconv"
 	"strings"
@@ -22,21 +23,19 @@ type User struct {
 }
 
 type Filter struct {
-	PassportNumber  *string
-	Surname         *string
-	Name            *string
-	Patronymic      *string
-	PatronymicForce bool
-	Address         *string
+	PassportNumber *string
+	Surname        *string
+	Name           *string
+	Patronymic     *sql.NullString
+	Address        *string
 }
 
 type Update struct {
-	PassportNumber  *string
-	Surname         *string
-	Name            *string
-	Patronymic      *string
-	PatronymicForce bool
-	Address         *string
+	PassportNumber *string
+	Surname        *string
+	Name           *string
+	Patronymic     *sql.NullString
+	Address        *string
 }
 
 type Service interface {
@@ -149,7 +148,7 @@ func (s *ServiceImpl) Update(ctx context.Context, id int, update *Update) (*User
 			SET passport_number = COALESCE($2, passport_number),
 				surname = COALESCE($3, surname),
 				name = COALESCE($4, name),
-				patronymic = CASE WHEN $6 THEN $5 ELSE COALESCE($5, patronymic) END,
+				patronymic = CASE WHEN $6 THEN $5 ELSE patronymic END,
 				address = COALESCE($7, address)
 			WHERE id = $1
 			RETURNING id, passport_number, surname, name, patronymic, address
@@ -159,7 +158,7 @@ func (s *ServiceImpl) Update(ctx context.Context, id int, update *Update) (*User
 		update.Surname,
 		update.Name,
 		update.Patronymic,
-		&update.PatronymicForce,
+		update.Patronymic != nil,
 		update.Address,
 	)
 	if err != nil {
@@ -231,11 +230,13 @@ func buildSelectQuery(filter *Filter, limit, offset int) (string, []any) {
 	}
 
 	if filter.Patronymic != nil {
-		whereConditions = append(whereConditions, `patronymic % $`+itoa(argIndex))
-		args = append(args, *filter.Patronymic)
-		argIndex++
-	} else if filter.PatronymicForce {
-		whereConditions = append(whereConditions, `patronymic IS NULL`)
+		if filter.Patronymic.Valid {
+			whereConditions = append(whereConditions, `patronymic % $`+itoa(argIndex))
+			args = append(args, *filter.Patronymic)
+			argIndex++
+		} else {
+			whereConditions = append(whereConditions, `patronymic IS NULL`)
+		}
 	}
 
 	if filter.Address != nil {
