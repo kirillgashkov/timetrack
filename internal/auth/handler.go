@@ -31,7 +31,7 @@ func (h *Handler) PostAuth(w http.ResponseWriter, r *http.Request) {
 			apiutil.MustWriteUnprocessableEntity(w, ve)
 			return
 		}
-		apiutil.MustWriteInternalServerError(w, err)
+		apiutil.MustWriteInternalServerError(w, "failed to parse and validate request", err)
 		return
 	}
 
@@ -42,7 +42,7 @@ func (h *Handler) PostAuth(w http.ResponseWriter, r *http.Request) {
 			apiutil.MustWriteError(w, "invalid credentials", http.StatusBadRequest)
 			return
 		}
-		apiutil.MustWriteInternalServerError(w, err)
+		apiutil.MustWriteInternalServerError(w, "failed to authorize", err)
 		return
 	}
 

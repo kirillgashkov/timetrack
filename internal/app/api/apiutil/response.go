@@ -46,7 +46,8 @@ func MustWriteForbidden(w http.ResponseWriter) {
 	MustWriteError(w, "forbidden", http.StatusForbidden)
 }
 
-func MustWriteInternalServerError(w http.ResponseWriter, e error) {
+func MustWriteInternalServerError(w http.ResponseWriter, m string, e error) {
+	e = errors.Join(errors.New(m), e)
 	slog.Error("internal server error", "error", e)
 	MustWriteError(w, "internal server error", http.StatusInternalServerError)
 }

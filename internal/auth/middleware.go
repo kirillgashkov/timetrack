@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"net/http"
 	"strings"
 
@@ -43,8 +42,7 @@ func (m *Middleware) Authenticated(next http.Handler) http.Handler {
 				apiutil.MustWriteUnauthorized(w, "invalid access token")
 				return
 			}
-			slog.Error("failed to get user by access token", "error", err)
-			apiutil.MustWriteInternalServerError(w)
+			apiutil.MustWriteInternalServerError(w, "failed to get user from access token", err)
 			return
 		}
 
