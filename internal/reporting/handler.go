@@ -27,7 +27,7 @@ func (h *Handler) PostUsersIdReport(w http.ResponseWriter, r *http.Request, id i
 		return
 	}
 
-	var reportIn *timetrackapi.ReportIn
+	var reportIn *timetrackapi.ReportRequest
 	if err := apiutil.ReadJSON(r, &reportIn); err != nil {
 		apiutil.MustWriteError(w, "invalid request", http.StatusUnprocessableEntity)
 		return

@@ -54,8 +54,8 @@ type ReportDuration struct {
 	Minutes int `json:"minutes"`
 }
 
-// ReportIn defines model for ReportIn.
-type ReportIn struct {
+// ReportRequest defines model for ReportRequest.
+type ReportRequest struct {
 	From time.Time `json:"from"`
 	To   time.Time `json:"to"`
 }
@@ -145,7 +145,7 @@ type PostUsersJSONRequestBody = UserCreate
 type PatchUsersIdJSONRequestBody = UserUpdate
 
 // PostUsersIdReportJSONRequestBody defines body for PostUsersIdReport for application/json ContentType.
-type PostUsersIdReportJSONRequestBody = ReportIn
+type PostUsersIdReportJSONRequestBody = ReportRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
