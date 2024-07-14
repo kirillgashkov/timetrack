@@ -3,9 +3,6 @@ package task
 import (
 	"context"
 	"errors"
-	"github.com/jackc/pgerrcode"
-	"github.com/jackc/pgx/v5/pgconn"
-
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -91,9 +88,8 @@ func (s *ServiceImpl) queryOne(ctx context.Context, query string, args ...any) (
 
 	task, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[Task])
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
-			return nil, ErrNotFound
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errors.Join(ErrNotFound, ErrNotFound)
 		}
 		return nil, errors.Join(errors.New("failed to collect task"), err)
 	}
