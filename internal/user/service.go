@@ -67,92 +67,53 @@ func (s *ServiceImpl) Create(ctx context.Context, passportNumber string) (*User,
 	if err != nil {
 		return nil, errors.Join(ErrInvalidPassportNumber, err)
 	}
+
 	info, err := s.peopleInfoService.Get(ctx, series, number)
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := s.db.Query(
-		ctx,
-		`
-			INSERT INTO users (passport_number, surname, name, patronymic, address)
-			VALUES ($1, $2, $3, $4, $5)
-			RETURNING id, passport_number, surname, name, patronymic, address
-		`,
+	q := `
+		INSERT INTO users (passport_number, surname, name, patronymic, address)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id, passport_number, surname, name, patronymic, address
+	`
+	args := []any{
 		passportNumber,
 		info.Surname,
 		info.Name,
 		info.Patronymic,
 		info.Address,
-	)
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to insert user"), err)
 	}
-
-	u, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[User])
-	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
-			return nil, errors.Join(ErrAlreadyExists, err)
-		}
-		return nil, errors.Join(errors.New("failed to collect user"), err)
-	}
-	return &u, nil
+	return s.queryOne(ctx, q, args...)
 }
 
 func (s *ServiceImpl) Get(ctx context.Context, id int) (*User, error) {
-	rows, err := s.db.Query(
-		ctx,
-		`
-			SELECT id, passport_number, surname, name, patronymic, address
-			FROM users
-			WHERE id = $1
-		`,
-		id,
-	)
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to select user"), err)
-	}
-
-	u, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[User])
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, errors.Join(ErrNotFound, err)
-		}
-		return nil, errors.Join(errors.New("failed to collect user"), err)
-	}
-	return &u, nil
+	q := `
+		SELECT id, passport_number, surname, name, patronymic, address
+		FROM users
+		WHERE id = $1
+	`
+	return s.queryOne(ctx, q, id)
 }
 
 func (s *ServiceImpl) List(ctx context.Context, filter *Filter, offset, limit int) ([]User, error) {
-	query, args := buildSelectQuery(filter, limit, offset)
-
-	rows, err := s.db.Query(ctx, query, args...)
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to select users"), err)
-	}
-
-	users, err := pgx.CollectRows(rows, pgx.RowToStructByName[User])
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to collect users"), err)
-	}
-
-	return users, nil
+	q, args := buildSelectQuery(filter, limit, offset)
+	return s.queryAll(ctx, q, args...)
 }
 
 func (s *ServiceImpl) Update(ctx context.Context, id int, update *Update) (*User, error) {
-	rows, err := s.db.Query(
-		ctx,
-		`
-			UPDATE users
-			SET passport_number = COALESCE($2, passport_number),
-				surname = COALESCE($3, surname),
-				name = COALESCE($4, name),
-				patronymic = CASE WHEN $6 THEN $5 ELSE patronymic END,
-				address = COALESCE($7, address)
-			WHERE id = $1
-			RETURNING id, passport_number, surname, name, patronymic, address
-		`,
+	q := `
+		UPDATE users
+		SET passport_number = COALESCE($2, passport_number),
+			surname = COALESCE($3, surname),
+			name = COALESCE($4, name),
+			patronymic = CASE WHEN $6 THEN $5 ELSE patronymic END,
+			address = COALESCE($7, address)
+		WHERE id = $1
+		RETURNING id, passport_number, surname, name, patronymic, address
+	`
+	args := []any{
 		id,
 		update.PassportNumber,
 		update.Surname,
@@ -160,43 +121,52 @@ func (s *ServiceImpl) Update(ctx context.Context, id int, update *Update) (*User
 		update.Patronymic,
 		update.Patronymic != nil,
 		update.Address,
-	)
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to update user"), err)
 	}
-
-	u, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[User])
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, errors.Join(ErrNotFound, err)
-		}
-		return nil, errors.Join(errors.New("failed to collect rows"), err)
-	}
-	return &u, nil
+	return s.queryOne(ctx, q, args...)
 }
 
 func (s *ServiceImpl) Delete(ctx context.Context, id int) (*User, error) {
-	rows, err := s.db.Query(
-		ctx,
-		`
-			DELETE FROM users
-			WHERE id = $1
-			RETURNING id, passport_number, surname, name, patronymic, address
-		`,
-		id,
-	)
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to delete user"), err)
-	}
+	q := `
+		DELETE FROM users
+		WHERE id = $1
+		RETURNING id, passport_number, surname, name, patronymic, address
+	`
+	return s.queryOne(ctx, q, id)
+}
 
-	u, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[User])
+func (s *ServiceImpl) queryAll(ctx context.Context, query string, args ...any) ([]User, error) {
+	rows, err := s.db.Query(ctx, query, args...)
 	if err != nil {
+		return nil, errors.Join(errors.New("failed to select users"), err)
+	}
+	defer rows.Close()
+
+	users, err := pgx.CollectRows(rows, pgx.RowToStructByName[User])
+	if err != nil {
+		return nil, errors.Join(errors.New("failed to collect users"), err)
+	}
+	return users, nil
+}
+
+func (s *ServiceImpl) queryOne(ctx context.Context, query string, args ...any) (*User, error) {
+	rows, err := s.db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Join(errors.New("failed to select user"), err)
+	}
+	defer rows.Close()
+
+	user, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[User])
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
+			return nil, errors.Join(ErrAlreadyExists, err)
+		}
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, errors.Join(ErrNotFound, err)
+			return nil, errors.Join(ErrNotFound, ErrNotFound)
 		}
 		return nil, errors.Join(errors.New("failed to collect user"), err)
 	}
-	return &u, nil
+	return &user, nil
 }
 
 // buildSelectQuery builds a SELECT query with WHERE conditions based on the
