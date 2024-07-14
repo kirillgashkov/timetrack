@@ -11,14 +11,6 @@ var (
 	ErrNotFound = errors.New("task not found")
 )
 
-type Service interface {
-	Create(ctx context.Context, create *CreateTask) (*Task, error)
-	Get(ctx context.Context, id int) (*Task, error)
-	List(ctx context.Context, offset, limit int) ([]Task, error)
-	Update(ctx context.Context, id int, update *UpdateTask) (*Task, error)
-	Delete(ctx context.Context, id int) (*Task, error)
-}
-
 type Task struct {
 	ID          int
 	Description string
@@ -30,6 +22,14 @@ type CreateTask struct {
 
 type UpdateTask struct {
 	Description *string
+}
+
+type Service interface {
+	Create(ctx context.Context, create *CreateTask) (*Task, error)
+	Get(ctx context.Context, id int) (*Task, error)
+	List(ctx context.Context, offset, limit int) ([]Task, error)
+	Update(ctx context.Context, id int, update *UpdateTask) (*Task, error)
+	Delete(ctx context.Context, id int) (*Task, error)
 }
 
 type ServiceImpl struct {
