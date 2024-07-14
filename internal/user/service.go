@@ -28,7 +28,11 @@ type User struct {
 	Address        string
 }
 
-type Filter struct {
+type CreateUser struct {
+	PassportNumber string
+}
+
+type FilterUser struct {
 	PassportNumber *string
 	Surname        *string
 	Name           *string
@@ -36,7 +40,7 @@ type Filter struct {
 	Address        *string
 }
 
-type Update struct {
+type UpdateUser struct {
 	PassportNumber *string
 	Surname        *string
 	Name           *string
@@ -47,8 +51,8 @@ type Update struct {
 type Service interface {
 	Create(ctx context.Context, passportNumber string) (*User, error)
 	Get(ctx context.Context, id int) (*User, error)
-	List(ctx context.Context, filter *Filter, offset, limit int) ([]User, error)
-	Update(ctx context.Context, id int, update *Update) (*User, error)
+	List(ctx context.Context, filter *FilterUser, offset, limit int) ([]User, error)
+	Update(ctx context.Context, id int, update *UpdateUser) (*User, error)
 	Delete(ctx context.Context, id int) (*User, error)
 }
 
@@ -96,12 +100,12 @@ func (s *ServiceImpl) Get(ctx context.Context, id int) (*User, error) {
 	return s.queryOne(ctx, q, id)
 }
 
-func (s *ServiceImpl) List(ctx context.Context, filter *Filter, offset, limit int) ([]User, error) {
+func (s *ServiceImpl) List(ctx context.Context, filter *FilterUser, offset, limit int) ([]User, error) {
 	q, args := buildSelectQuery(filter, limit, offset)
 	return s.queryAll(ctx, q, args...)
 }
 
-func (s *ServiceImpl) Update(ctx context.Context, id int, update *Update) (*User, error) {
+func (s *ServiceImpl) Update(ctx context.Context, id int, update *UpdateUser) (*User, error) {
 	q := `
 		UPDATE users
 		SET passport_number = COALESCE($2, passport_number),
@@ -198,7 +202,7 @@ func parsePassportNumber(passportNumber string) (int, int, error) {
 // buildSelectQuery builds a SELECT query with WHERE conditions based on the
 // provided filter. Filters utilize the similarity operator % for string
 // comparison (pg_trgm).
-func buildSelectQuery(filter *Filter, limit, offset int) (string, []any) {
+func buildSelectQuery(filter *FilterUser, limit, offset int) (string, []any) {
 	baseQuery := `
 		SELECT id, passport_number, surname, name, patronymic, address
 		FROM users
