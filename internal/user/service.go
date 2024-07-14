@@ -59,7 +59,6 @@ var (
 	ErrAlreadyExists         = errors.New("user already exists")
 	ErrNotFound              = errors.New("user not found")
 	ErrInvalidPassportNumber = errors.New("invalid passport number")
-	ErrPeopleInfoUnavailable = errors.New("people info service is unavailable")
 )
 
 func (s *ServiceImpl) Create(ctx context.Context, passportNumber string) (*User, error) {

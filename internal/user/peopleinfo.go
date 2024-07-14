@@ -8,6 +8,11 @@ import (
 	"github.com/kirillgashkov/timetrack/api/peopleinfoapi/v1"
 )
 
+var (
+	ErrPeopleInfoNotFound    = errors.New("people info not found")
+	ErrPeopleInfoUnavailable = errors.New("people info service is unavailable")
+)
+
 type PeopleInfo struct {
 	Name       string
 	Patronymic *string
@@ -19,40 +24,21 @@ type PeopleInfoService interface {
 	Get(ctx context.Context, passportSeries int, passportNumber int) (*PeopleInfo, error)
 }
 
-type PeopleInfoServiceMock struct{}
-
-type PeopleInfoServiceReal struct {
+type PeopleInfoServiceImpl struct {
 	client *peopleinfoapi.Client
 }
 
-var (
-	ErrPeopleInfoNotFound = errors.New("people info not found")
-)
-
-func (s *PeopleInfoServiceMock) Get(_ context.Context, _ int, passportNumber int) (*PeopleInfo, error) {
-	var patronymic *string
-	if passportNumber%7 == 0 {
-		patronymic = new(string)
-		*patronymic = "Ivanovich"
-	}
-
-	return &PeopleInfo{
-		Name:       "Ivan",
-		Patronymic: nil,
-		Surname:    "Ivanov",
-		Address:    "Ivanovskaya st., 1",
-	}, nil
-}
-
-func NewPeopleInfoServiceReal(serverURL string, httpClient *http.Client) (*PeopleInfoServiceReal, error) {
-	peopleInfoClient, err := peopleinfoapi.NewClient(serverURL, peopleinfoapi.WithHTTPClient(httpClient))
+func NewPeopleInfoServiceImpl(serverURL string, httpClient *http.Client) (*PeopleInfoServiceImpl, error) {
+	peopleInfoClient, err := peopleinfoapi.NewClient(
+		serverURL, peopleinfoapi.WithHTTPClient(httpClient),
+	)
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to create people info client"), err)
 	}
-	return &PeopleInfoServiceReal{client: peopleInfoClient}, nil
+	return &PeopleInfoServiceImpl{client: peopleInfoClient}, nil
 }
 
-func (s *PeopleInfoServiceReal) Get(ctx context.Context, passportSeries int, passportNumber int) (*PeopleInfo, error) {
+func (s *PeopleInfoServiceImpl) Get(ctx context.Context, passportSeries int, passportNumber int) (*PeopleInfo, error) {
 	peopleInfoParams := &peopleinfoapi.GetInfoParams{
 		PassportSerie: passportSeries, PassportNumber: passportNumber,
 	}
