@@ -28,6 +28,25 @@ func NewServiceImpl(db *pgxpool.Pool) *ServiceImpl {
 }
 
 func (s *ServiceImpl) Report(ctx context.Context, userID int, from, to time.Time) ([]ReportTask, error) {
+	reportTaskRows, err := s.queryReport(ctx, userID, from, to)
+	if err != nil {
+		return nil, err
+	}
+
+	reportTasks := make([]ReportTask, 0, len(reportTaskRows))
+	for _, rtr := range reportTaskRows {
+		reportTasks = append(reportTasks, ReportTask{
+			Task: task.Task{
+				ID:          rtr.TaskID,
+				Description: rtr.TaskDescription,
+			},
+			Duration: rtr.Duration,
+		})
+	}
+	return reportTasks, nil
+}
+
+func (s *ServiceImpl) queryReport(ctx context.Context, userID int, from, to time.Time) ([]reportTaskRow, error) {
 	rows, err := s.db.Query(
 		ctx,
 		`
@@ -53,25 +72,16 @@ func (s *ServiceImpl) Report(ctx context.Context, userID int, from, to time.Time
 	}
 	defer rows.Close()
 
-	type reportTask struct {
-		TaskID          int           `db:"task_id"`
-		TaskDescription string        `db:"task_description"`
-		Duration        time.Duration `db:"duration"`
-	}
-	reportTasks, err := pgx.CollectRows(rows, pgx.RowToStructByName[reportTask])
+	reportTasks, err := pgx.CollectRows(rows, pgx.RowToStructByName[reportTaskRow])
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to collect report tasks"), err)
 	}
 
-	report := make([]ReportTask, 0, len(reportTasks))
-	for _, rt := range reportTasks {
-		report = append(report, ReportTask{
-			Task: task.Task{
-				ID:          rt.TaskID,
-				Description: rt.TaskDescription,
-			},
-			Duration: rt.Duration,
-		})
-	}
-	return report, nil
+	return reportTasks, nil
+}
+
+type reportTaskRow struct {
+	TaskID          int           `db:"task_id"`
+	TaskDescription string        `db:"task_description"`
+	Duration        time.Duration `db:"duration"`
 }
