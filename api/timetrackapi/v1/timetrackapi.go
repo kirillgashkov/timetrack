@@ -48,13 +48,13 @@ type CreateUserRequest struct {
 	PassportNumber string `json:"passportNumber"`
 }
 
-// Error defines model for Error.
-type Error struct {
+// ErrorResponse defines model for ErrorResponse.
+type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
-// Health defines model for Health.
-type Health struct {
+// HealthResponse defines model for HealthResponse.
+type HealthResponse struct {
 	Status string `json:"status"`
 }
 

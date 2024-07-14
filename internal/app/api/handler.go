@@ -43,5 +43,5 @@ func NewHandler(
 }
 
 func (h *Handler) GetHealth(w http.ResponseWriter, _ *http.Request) {
-	apiutil.MustWriteJSON(w, timetrackapi.Health{Status: "ok"}, http.StatusOK)
+	apiutil.MustWriteJSON(w, timetrackapi.HealthResponse{Status: "ok"}, http.StatusOK)
 }
