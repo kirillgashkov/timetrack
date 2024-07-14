@@ -13,6 +13,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+var (
+	ErrAlreadyExists         = errors.New("user already exists")
+	ErrNotFound              = errors.New("user not found")
+	ErrInvalidPassportNumber = errors.New("invalid passport number")
+)
+
 type User struct {
 	ID             int
 	PassportNumber string `db:"passport_number"`
@@ -54,12 +60,6 @@ type ServiceImpl struct {
 func NewServiceImpl(db *pgxpool.Pool, peopleInfoService PeopleInfoService) *ServiceImpl {
 	return &ServiceImpl{db: db, peopleInfoService: peopleInfoService}
 }
-
-var (
-	ErrAlreadyExists         = errors.New("user already exists")
-	ErrNotFound              = errors.New("user not found")
-	ErrInvalidPassportNumber = errors.New("invalid passport number")
-)
 
 func (s *ServiceImpl) Create(ctx context.Context, passportNumber string) (*User, error) {
 	series, number, err := parsePassportNumber(passportNumber)
@@ -168,6 +168,33 @@ func (s *ServiceImpl) queryOne(ctx context.Context, query string, args ...any) (
 	return &user, nil
 }
 
+// parsePassportNumber parses a passport number string into a series and a
+// number.
+func parsePassportNumber(passportNumber string) (int, int, error) {
+	parts := strings.Split(passportNumber, " ")
+	if len(parts) != 2 {
+		return 0, 0, errors.New("invalid passport number")
+	}
+
+	series, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return 0, 0, errors.Join(errors.New("failed to parse passport series"), err)
+	}
+	if series < 0 || series > 9999 {
+		return 0, 0, errors.New("passport series out of range")
+	}
+
+	number, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return 0, 0, errors.Join(errors.New("failed to parse passport number"), err)
+	}
+	if number < 0 || number > 999999 {
+		return 0, 0, errors.New("passport number out of range")
+	}
+
+	return series, number, nil
+}
+
 // buildSelectQuery builds a SELECT query with WHERE conditions based on the
 // provided filter. Filters utilize the similarity operator % for string
 // comparison (pg_trgm).
@@ -222,33 +249,6 @@ func buildSelectQuery(filter *Filter, limit, offset int) (string, []any) {
 	args = append(args, limit, offset)
 
 	return baseQuery, args
-}
-
-// parsePassportNumber parses a passport number string into a series and a
-// number.
-func parsePassportNumber(passportNumber string) (int, int, error) {
-	parts := strings.Split(passportNumber, " ")
-	if len(parts) != 2 {
-		return 0, 0, errors.New("invalid passport number")
-	}
-
-	series, err := strconv.Atoi(parts[0])
-	if err != nil {
-		return 0, 0, errors.Join(errors.New("failed to parse passport series"), err)
-	}
-	if series < 0 || series > 9999 {
-		return 0, 0, errors.New("passport series out of range")
-	}
-
-	number, err := strconv.Atoi(parts[1])
-	if err != nil {
-		return 0, 0, errors.Join(errors.New("failed to parse passport number"), err)
-	}
-	if number < 0 || number > 999999 {
-		return 0, 0, errors.New("passport number out of range")
-	}
-
-	return series, number, nil
 }
 
 func itoa(i int) string {
