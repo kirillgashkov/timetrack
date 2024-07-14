@@ -10,6 +10,17 @@ import (
 	"github.com/kirillgashkov/timetrack/internal/task"
 )
 
+type ReportTask struct {
+	Task     task.Task
+	Duration time.Duration
+}
+
+type reportTaskRow struct {
+	TaskID          int           `db:"task_id"`
+	TaskDescription string        `db:"task_description"`
+	Duration        time.Duration `db:"duration"`
+}
+
 type Service interface {
 	Report(ctx context.Context, userID int, from, to time.Time) ([]ReportTask, error)
 }
@@ -18,17 +29,12 @@ type ServiceImpl struct {
 	db *pgxpool.Pool
 }
 
-type ReportTask struct {
-	Task     task.Task
-	Duration time.Duration
-}
-
 func NewServiceImpl(db *pgxpool.Pool) *ServiceImpl {
 	return &ServiceImpl{db: db}
 }
 
 func (s *ServiceImpl) Report(ctx context.Context, userID int, from, to time.Time) ([]ReportTask, error) {
-	reportTaskRows, err := s.queryReport(ctx, userID, from, to)
+	reportTaskRows, err := s.queryReportTasks(ctx, userID, from, to)
 	if err != nil {
 		return nil, err
 	}
@@ -46,27 +52,22 @@ func (s *ServiceImpl) Report(ctx context.Context, userID int, from, to time.Time
 	return reportTasks, nil
 }
 
-func (s *ServiceImpl) queryReport(ctx context.Context, userID int, from, to time.Time) ([]reportTaskRow, error) {
-	rows, err := s.db.Query(
-		ctx,
-		`
-			SELECT tasks.id AS task_id,
-				   tasks.description AS task_description,
-				   SUM(LEAST(COALESCE(works.stopped_at, $3), $3) - GREATEST(works.started_at, $2)) AS duration
-			FROM works
-			JOIN tasks ON works.task_id = tasks.id
-			WHERE user_id = $1
-			  AND (
-				  (works.started_at >= $2 AND works.started_at <= $3)
-				  OR (works.stopped_at >= $2 AND works.stopped_at <= $3)
-			  )
-			GROUP BY tasks.id
-			ORDER BY duration DESC, task_id
-		`,
-		userID,
-		from,
-		to,
-	)
+func (s *ServiceImpl) queryReportTasks(ctx context.Context, userID int, from, to time.Time) ([]reportTaskRow, error) {
+	q := `
+		SELECT tasks.id AS task_id,
+			   tasks.description AS task_description,
+			   SUM(LEAST(COALESCE(works.stopped_at, $3), $3) - GREATEST(works.started_at, $2)) AS duration
+		FROM works
+		JOIN tasks ON works.task_id = tasks.id
+		WHERE user_id = $1
+		  AND (
+			  (works.started_at >= $2 AND works.started_at <= $3)
+			  OR (works.stopped_at >= $2 AND works.stopped_at <= $3)
+		  )
+		GROUP BY tasks.id
+		ORDER BY duration DESC, task_id
+	`
+	rows, err := s.db.Query(ctx, q, userID, from, to)
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to select report"), err)
 	}
@@ -78,10 +79,4 @@ func (s *ServiceImpl) queryReport(ctx context.Context, userID int, from, to time
 	}
 
 	return reportTasks, nil
-}
-
-type reportTaskRow struct {
-	TaskID          int           `db:"task_id"`
-	TaskDescription string        `db:"task_description"`
-	Duration        time.Duration `db:"duration"`
 }
