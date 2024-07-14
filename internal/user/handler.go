@@ -254,7 +254,7 @@ func (h *Handler) PatchUsersId(w http.ResponseWriter, r *http.Request, id int) {
 		return
 	}
 
-	update := newUpdateFromRequest(req)
+	update := updateUserFromRequest(req)
 	u, err := h.service.Update(r.Context(), id, update)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
@@ -269,7 +269,7 @@ func (h *Handler) PatchUsersId(w http.ResponseWriter, r *http.Request, id int) {
 	apiutil.MustWriteJSON(w, resp, http.StatusOK)
 }
 
-func newUpdateFromRequest(req *timetrackapi.UpdateUserRequest) *UpdateUser {
+func updateUserFromRequest(req *timetrackapi.UpdateUserRequest) *UpdateUser {
 	var patronymic *sql.NullString
 	if req.Patronymic != nil {
 		patronymic = &sql.NullString{String: *req.Patronymic, Valid: true}
