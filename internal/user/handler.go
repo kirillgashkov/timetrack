@@ -261,6 +261,10 @@ func (h *Handler) PatchUsersId(w http.ResponseWriter, r *http.Request, id int) {
 			apiutil.MustWriteError(w, "user not found", http.StatusNotFound)
 			return
 		}
+		if errors.Is(err, ErrAlreadyExists) {
+			apiutil.MustWriteError(w, "user already exists, perhaps a passport number conflict", http.StatusBadRequest)
+			return
+		}
 		apiutil.MustWriteInternalServerError(w, "failed to update user", err)
 		return
 	}
