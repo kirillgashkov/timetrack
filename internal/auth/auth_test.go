@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kirillgashkov/timetrack/internal/app/testutil"
 )
 
 var (
@@ -27,11 +28,7 @@ func (s *ServiceMock) UserFromAccessToken(accessToken string) (*User, error) {
 
 func TestMain(m *testing.M) {
 	code := func() int {
-		var err error
-		db, err = pgxpool.New(context.Background(), os.Getenv("TEST_APP_DATABASE_DSN"))
-		if err != nil {
-			panic("failed to connect to the database: " + err.Error())
-		}
+		db = testutil.NewTestPool()
 		defer db.Close()
 
 		return m.Run()

@@ -45,7 +45,7 @@ func mainErr() error {
 	}
 	defer db.Close()
 
-	peopleInfoService, err := user.NewPeopleInfoServiceReal(cfg.PeopleInfoServerURL, &http.Client{
+	peopleInfoService, err := user.NewPeopleInfoServiceImpl(cfg.PeopleInfoServerURL, &http.Client{
 		Timeout: time.Duration(cfg.PeopleInfoServerTimeout) * time.Second,
 	})
 	if err != nil {

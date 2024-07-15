@@ -5,20 +5,12 @@ import (
 	"errors"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kirillgashkov/timetrack/internal/app/database"
 )
 
 var (
 	ErrNotFound = errors.New("task not found")
 )
-
-type Service interface {
-	Create(ctx context.Context, create *CreateTask) (*Task, error)
-	Get(ctx context.Context, id int) (*Task, error)
-	List(ctx context.Context, offset, limit int) ([]Task, error)
-	Update(ctx context.Context, id int, update *UpdateTask) (*Task, error)
-	Delete(ctx context.Context, id int) (*Task, error)
-}
 
 type Task struct {
 	ID          int
@@ -33,11 +25,19 @@ type UpdateTask struct {
 	Description *string
 }
 
-type ServiceImpl struct {
-	db *pgxpool.Pool
+type Service interface {
+	Create(ctx context.Context, create *CreateTask) (*Task, error)
+	Get(ctx context.Context, id int) (*Task, error)
+	List(ctx context.Context, offset, limit int) ([]Task, error)
+	Update(ctx context.Context, id int, update *UpdateTask) (*Task, error)
+	Delete(ctx context.Context, id int) (*Task, error)
 }
 
-func NewServiceImpl(db *pgxpool.Pool) *ServiceImpl {
+type ServiceImpl struct {
+	db database.DB
+}
+
+func NewServiceImpl(db database.DB) *ServiceImpl {
 	return &ServiceImpl{db: db}
 }
 
@@ -89,6 +89,9 @@ func (s *ServiceImpl) queryOne(ctx context.Context, query string, args ...any) (
 
 	task, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[Task])
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errors.Join(ErrNotFound, ErrNotFound)
+		}
 		return nil, errors.Join(errors.New("failed to collect task"), err)
 	}
 	return &task, nil

@@ -6,7 +6,12 @@ import (
 	"strconv"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kirillgashkov/timetrack/internal/app/database"
+)
+
+var (
+	ErrInvalidCredentials = errors.New("invalid credentials")
+	ErrInvalidAccessToken = errors.New("invalid access token")
 )
 
 type PasswordGrant struct {
@@ -18,10 +23,9 @@ type Token struct {
 	AccessToken string
 }
 
-var (
-	ErrInvalidCredentials = errors.New("invalid credentials")
-	ErrInvalidAccessToken = errors.New("invalid access token")
-)
+type User struct {
+	ID int
+}
 
 type Service interface {
 	Authorize(ctx context.Context, g *PasswordGrant) (*Token, error)
@@ -29,15 +33,16 @@ type Service interface {
 }
 
 type ServiceImpl struct {
-	db *pgxpool.Pool
+	db database.DB
 }
 
-func NewServiceImpl(db *pgxpool.Pool) *ServiceImpl {
+func NewServiceImpl(db database.DB) *ServiceImpl {
 	return &ServiceImpl{db: db}
 }
 
 func (s *ServiceImpl) Authorize(ctx context.Context, g *PasswordGrant) (*Token, error) {
-	rows, err := s.db.Query(ctx, `SELECT id FROM users WHERE passport_number = $1`, g.Username)
+	q := `SELECT id FROM users WHERE passport_number = $1`
+	rows, err := s.db.Query(ctx, q, g.Username)
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to select user"), err)
 	}
@@ -58,10 +63,6 @@ func (s *ServiceImpl) Authorize(ctx context.Context, g *PasswordGrant) (*Token, 
 
 	// Pseudo-token generation that uses the user ID as the access token.
 	return &Token{AccessToken: strconv.Itoa(id)}, nil
-}
-
-type User struct {
-	ID int
 }
 
 func (s *ServiceImpl) UserFromAccessToken(accessToken string) (*User, error) {

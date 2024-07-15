@@ -118,14 +118,14 @@ func (h *Handler) GetUsers(w http.ResponseWriter, r *http.Request, params timetr
 	apiutil.MustWriteJSON(w, resp, http.StatusOK)
 }
 
-func parseListUsersRequestFilter(params *timetrackapi.GetUsersParams) (*Filter, error) {
+func parseListUsersRequestFilter(params *timetrackapi.GetUsersParams) (*FilterUser, error) {
 	if params.Filter == nil {
-		return &Filter{}, nil
+		return &FilterUser{}, nil
 	}
 
 	e := make([]string, 0)
 
-	filter := &Filter{}
+	filter := &FilterUser{}
 	for _, f := range *params.Filter {
 		parts := strings.SplitN(f, "=", 2)
 		if len(parts) != 2 {
@@ -254,7 +254,7 @@ func (h *Handler) PatchUsersId(w http.ResponseWriter, r *http.Request, id int) {
 		return
 	}
 
-	update := newUpdateFromRequest(req)
+	update := updateUserFromRequest(req)
 	u, err := h.service.Update(r.Context(), id, update)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
@@ -269,7 +269,7 @@ func (h *Handler) PatchUsersId(w http.ResponseWriter, r *http.Request, id int) {
 	apiutil.MustWriteJSON(w, resp, http.StatusOK)
 }
 
-func newUpdateFromRequest(req *timetrackapi.UpdateUserRequest) *Update {
+func updateUserFromRequest(req *timetrackapi.UpdateUserRequest) *UpdateUser {
 	var patronymic *sql.NullString
 	if req.Patronymic != nil {
 		patronymic = &sql.NullString{String: *req.Patronymic, Valid: true}
@@ -281,7 +281,7 @@ func newUpdateFromRequest(req *timetrackapi.UpdateUserRequest) *Update {
 		patronymic.Valid = *req.PatronymicNull
 	}
 
-	return &Update{
+	return &UpdateUser{
 		PassportNumber: req.PassportNumber,
 		Surname:        req.Surname,
 		Name:           req.Name,

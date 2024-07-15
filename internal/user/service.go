@@ -10,7 +10,13 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kirillgashkov/timetrack/internal/app/database"
+)
+
+var (
+	ErrAlreadyExists         = errors.New("user already exists")
+	ErrNotFound              = errors.New("user not found")
+	ErrInvalidPassportNumber = errors.New("invalid passport number")
 )
 
 type User struct {
@@ -22,7 +28,11 @@ type User struct {
 	Address        string
 }
 
-type Filter struct {
+type CreateUser struct {
+	PassportNumber string
+}
+
+type FilterUser struct {
 	PassportNumber *string
 	Surname        *string
 	Name           *string
@@ -30,7 +40,7 @@ type Filter struct {
 	Address        *string
 }
 
-type Update struct {
+type UpdateUser struct {
 	PassportNumber *string
 	Surname        *string
 	Name           *string
@@ -41,118 +51,72 @@ type Update struct {
 type Service interface {
 	Create(ctx context.Context, passportNumber string) (*User, error)
 	Get(ctx context.Context, id int) (*User, error)
-	List(ctx context.Context, filter *Filter, offset, limit int) ([]User, error)
-	Update(ctx context.Context, id int, update *Update) (*User, error)
+	List(ctx context.Context, filter *FilterUser, offset, limit int) ([]User, error)
+	Update(ctx context.Context, id int, update *UpdateUser) (*User, error)
 	Delete(ctx context.Context, id int) (*User, error)
 }
 
 type ServiceImpl struct {
-	db                *pgxpool.Pool
+	db                database.DB
 	peopleInfoService PeopleInfoService
 }
 
-func NewServiceImpl(db *pgxpool.Pool, peopleInfoService PeopleInfoService) *ServiceImpl {
+func NewServiceImpl(db database.DB, peopleInfoService PeopleInfoService) *ServiceImpl {
 	return &ServiceImpl{db: db, peopleInfoService: peopleInfoService}
 }
-
-var (
-	ErrAlreadyExists         = errors.New("user already exists")
-	ErrNotFound              = errors.New("user not found")
-	ErrInvalidPassportNumber = errors.New("invalid passport number")
-	ErrPeopleInfoUnavailable = errors.New("people info service is unavailable")
-)
 
 func (s *ServiceImpl) Create(ctx context.Context, passportNumber string) (*User, error) {
 	series, number, err := parsePassportNumber(passportNumber)
 	if err != nil {
 		return nil, errors.Join(ErrInvalidPassportNumber, err)
 	}
+
 	info, err := s.peopleInfoService.Get(ctx, series, number)
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := s.db.Query(
-		ctx,
-		`
-			INSERT INTO users (passport_number, surname, name, patronymic, address)
-			VALUES ($1, $2, $3, $4, $5)
-			RETURNING id, passport_number, surname, name, patronymic, address
-		`,
+	q := `
+		INSERT INTO users (passport_number, surname, name, patronymic, address)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id, passport_number, surname, name, patronymic, address
+	`
+	args := []any{
 		passportNumber,
 		info.Surname,
 		info.Name,
 		info.Patronymic,
 		info.Address,
-	)
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to insert user"), err)
 	}
-
-	u, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[User])
-	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
-			return nil, errors.Join(ErrAlreadyExists, err)
-		}
-		return nil, errors.Join(errors.New("failed to collect user"), err)
-	}
-	return &u, nil
+	return s.queryOne(ctx, q, args...)
 }
 
 func (s *ServiceImpl) Get(ctx context.Context, id int) (*User, error) {
-	rows, err := s.db.Query(
-		ctx,
-		`
-			SELECT id, passport_number, surname, name, patronymic, address
-			FROM users
-			WHERE id = $1
-		`,
-		id,
-	)
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to select user"), err)
-	}
-
-	u, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[User])
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, errors.Join(ErrNotFound, err)
-		}
-		return nil, errors.Join(errors.New("failed to collect user"), err)
-	}
-	return &u, nil
+	q := `
+		SELECT id, passport_number, surname, name, patronymic, address
+		FROM users
+		WHERE id = $1
+	`
+	return s.queryOne(ctx, q, id)
 }
 
-func (s *ServiceImpl) List(ctx context.Context, filter *Filter, offset, limit int) ([]User, error) {
-	query, args := buildSelectQuery(filter, limit, offset)
-
-	rows, err := s.db.Query(ctx, query, args...)
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to select users"), err)
-	}
-
-	users, err := pgx.CollectRows(rows, pgx.RowToStructByName[User])
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to collect users"), err)
-	}
-
-	return users, nil
+func (s *ServiceImpl) List(ctx context.Context, filter *FilterUser, offset, limit int) ([]User, error) {
+	q, args := buildSelectQuery(filter, limit, offset)
+	return s.queryAll(ctx, q, args...)
 }
 
-func (s *ServiceImpl) Update(ctx context.Context, id int, update *Update) (*User, error) {
-	rows, err := s.db.Query(
-		ctx,
-		`
-			UPDATE users
-			SET passport_number = COALESCE($2, passport_number),
-				surname = COALESCE($3, surname),
-				name = COALESCE($4, name),
-				patronymic = CASE WHEN $6 THEN $5 ELSE patronymic END,
-				address = COALESCE($7, address)
-			WHERE id = $1
-			RETURNING id, passport_number, surname, name, patronymic, address
-		`,
+func (s *ServiceImpl) Update(ctx context.Context, id int, update *UpdateUser) (*User, error) {
+	q := `
+		UPDATE users
+		SET passport_number = COALESCE($2, passport_number),
+			surname = COALESCE($3, surname),
+			name = COALESCE($4, name),
+			patronymic = CASE WHEN $6 THEN $5 ELSE patronymic END,
+			address = COALESCE($7, address)
+		WHERE id = $1
+		RETURNING id, passport_number, surname, name, patronymic, address
+	`
+	args := []any{
 		id,
 		update.PassportNumber,
 		update.Surname,
@@ -160,49 +124,85 @@ func (s *ServiceImpl) Update(ctx context.Context, id int, update *Update) (*User
 		update.Patronymic,
 		update.Patronymic != nil,
 		update.Address,
-	)
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to update user"), err)
 	}
-
-	u, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[User])
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, errors.Join(ErrNotFound, err)
-		}
-		return nil, errors.Join(errors.New("failed to collect rows"), err)
-	}
-	return &u, nil
+	return s.queryOne(ctx, q, args...)
 }
 
 func (s *ServiceImpl) Delete(ctx context.Context, id int) (*User, error) {
-	rows, err := s.db.Query(
-		ctx,
-		`
-			DELETE FROM users
-			WHERE id = $1
-			RETURNING id, passport_number, surname, name, patronymic, address
-		`,
-		id,
-	)
-	if err != nil {
-		return nil, errors.Join(errors.New("failed to delete user"), err)
-	}
+	q := `
+		DELETE FROM users
+		WHERE id = $1
+		RETURNING id, passport_number, surname, name, patronymic, address
+	`
+	return s.queryOne(ctx, q, id)
+}
 
-	u, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[User])
+func (s *ServiceImpl) queryAll(ctx context.Context, query string, args ...any) ([]User, error) {
+	rows, err := s.db.Query(ctx, query, args...)
 	if err != nil {
+		return nil, errors.Join(errors.New("failed to select users"), err)
+	}
+	defer rows.Close()
+
+	users, err := pgx.CollectRows(rows, pgx.RowToStructByName[User])
+	if err != nil {
+		return nil, errors.Join(errors.New("failed to collect users"), err)
+	}
+	return users, nil
+}
+
+func (s *ServiceImpl) queryOne(ctx context.Context, query string, args ...any) (*User, error) {
+	rows, err := s.db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Join(errors.New("failed to select user"), err)
+	}
+	defer rows.Close()
+
+	user, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[User])
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
+			return nil, errors.Join(ErrAlreadyExists, err)
+		}
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, errors.Join(ErrNotFound, err)
+			return nil, errors.Join(ErrNotFound, ErrNotFound)
 		}
 		return nil, errors.Join(errors.New("failed to collect user"), err)
 	}
-	return &u, nil
+	return &user, nil
+}
+
+// parsePassportNumber parses a passport number string into a series and a
+// number.
+func parsePassportNumber(passportNumber string) (int, int, error) {
+	parts := strings.Split(passportNumber, " ")
+	if len(parts) != 2 {
+		return 0, 0, errors.New("invalid passport number")
+	}
+
+	series, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return 0, 0, errors.Join(errors.New("failed to parse passport series"), err)
+	}
+	if series < 0 || series > 9999 {
+		return 0, 0, errors.New("passport series out of range")
+	}
+
+	number, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return 0, 0, errors.Join(errors.New("failed to parse passport number"), err)
+	}
+	if number < 0 || number > 999999 {
+		return 0, 0, errors.New("passport number out of range")
+	}
+
+	return series, number, nil
 }
 
 // buildSelectQuery builds a SELECT query with WHERE conditions based on the
 // provided filter. Filters utilize the similarity operator % for string
 // comparison (pg_trgm).
-func buildSelectQuery(filter *Filter, limit, offset int) (string, []any) {
+func buildSelectQuery(filter *FilterUser, limit, offset int) (string, []any) {
 	baseQuery := `
 		SELECT id, passport_number, surname, name, patronymic, address
 		FROM users
@@ -253,33 +253,6 @@ func buildSelectQuery(filter *Filter, limit, offset int) (string, []any) {
 	args = append(args, limit, offset)
 
 	return baseQuery, args
-}
-
-// parsePassportNumber parses a passport number string into a series and a
-// number.
-func parsePassportNumber(passportNumber string) (int, int, error) {
-	parts := strings.Split(passportNumber, " ")
-	if len(parts) != 2 {
-		return 0, 0, errors.New("invalid passport number")
-	}
-
-	series, err := strconv.Atoi(parts[0])
-	if err != nil {
-		return 0, 0, errors.Join(errors.New("failed to parse passport series"), err)
-	}
-	if series < 0 || series > 9999 {
-		return 0, 0, errors.New("passport series out of range")
-	}
-
-	number, err := strconv.Atoi(parts[1])
-	if err != nil {
-		return 0, 0, errors.Join(errors.New("failed to parse passport number"), err)
-	}
-	if number < 0 || number > 999999 {
-		return 0, 0, errors.New("passport number out of range")
-	}
-
-	return series, number, nil
 }
 
 func itoa(i int) string {

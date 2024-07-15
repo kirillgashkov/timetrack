@@ -9,9 +9,18 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kirillgashkov/timetrack/db/timetrackdb"
+	"github.com/kirillgashkov/timetrack/internal/app/database"
 )
+
+var (
+	ErrAlreadyStarted = errors.New("task already started")
+	ErrNotStarted     = errors.New("task not started")
+)
+
+type UserID int
+
+type TaskID int
 
 type Service interface {
 	StartTask(ctx context.Context, taskID TaskID, userID UserID) error
@@ -19,25 +28,18 @@ type Service interface {
 }
 
 type ServiceImpl struct {
-	db *pgxpool.Pool
+	db database.DB
 }
 
-type UserID int
-type TaskID int
-
-var (
-	ErrAlreadyStarted = errors.New("task already started")
-	ErrNotStarted     = errors.New("task not started")
-)
-
-func NewServiceImpl(db *pgxpool.Pool) *ServiceImpl {
+func NewServiceImpl(db database.DB) *ServiceImpl {
 	return &ServiceImpl{db: db}
 }
 
 func (s *ServiceImpl) StartTask(ctx context.Context, taskID TaskID, userID UserID) error {
+	q := `INSERT INTO works (started_at, task_id, user_id, status) VALUES (now(), $1, $2, $3)`
 	_, err := s.db.Exec(
 		ctx,
-		`INSERT INTO works (started_at, task_id, user_id, status) VALUES (now(), $1, $2, $3)`,
+		q,
 		taskID,
 		userID,
 		timetrackdb.WorkStatusStarted,
@@ -63,9 +65,10 @@ func (s *ServiceImpl) StopTask(ctx context.Context, taskID TaskID, userID UserID
 		}
 	}(tx)
 
+	q := `UPDATE works SET stopped_at = now(), status = $1 WHERE task_id = $2 AND user_id = $3 AND status = $4`
 	tag, err := s.db.Exec(
 		ctx,
-		`UPDATE works SET stopped_at = now(), status = $1 WHERE task_id = $2 AND user_id = $3 AND status = $4`,
+		q,
 		timetrackdb.WorkStatusStopped,
 		taskID,
 		userID,

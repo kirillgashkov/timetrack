@@ -36,7 +36,7 @@ func MustWriteNoContent(w http.ResponseWriter) {
 }
 
 func MustWriteError(w http.ResponseWriter, m string, code int) {
-	e := timetrackapi.Error{Message: m}
+	e := timetrackapi.ErrorResponse{Message: m}
 	MustWriteJSON(w, e, code)
 }
 
