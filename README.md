@@ -124,4 +124,4 @@ docker compose -p timetrack-test down -v
 
 ## Demo
 
-TBA.
+[![asciicast](https://asciinema.org/a/SfrDUwZ6N3gH2PTt7QdDxvykp.svg)](https://asciinema.org/a/SfrDUwZ6N3gH2PTt7QdDxvykp)
