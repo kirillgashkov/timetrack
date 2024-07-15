@@ -134,7 +134,7 @@ func parseListUsersRequestFilter(params *timetrackapi.GetUsersParams) (*FilterUs
 		k, v := parts[0], parts[1]
 
 		switch k {
-		case "passport-number":
+		case "passport_number":
 			filter.PassportNumber = &v
 		case "surname":
 			filter.Surname = &v
@@ -142,7 +142,7 @@ func parseListUsersRequestFilter(params *timetrackapi.GetUsersParams) (*FilterUs
 			filter.Name = &v
 		case "patronymic":
 			filter.Patronymic = &sql.NullString{String: v, Valid: true}
-		case "patronymic-null":
+		case "patronymic_null":
 			patronymic := filter.Patronymic
 			if patronymic == nil {
 				patronymic = &sql.NullString{}
