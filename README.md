@@ -92,16 +92,34 @@ TBA.
 
 ### Manual
 
-```
-$ go run ./cmd/peopleinfoserver &
-$ go run ./cmd/database-up
-$ go run ./cmd/server
+```sh
+go run ./cmd/peopleinfoserver &
+go run ./cmd/database-up
+go run ./cmd/server
 ```
 
 ### Docker Compose
 
+```sh
+docker compose up
 ```
-$ docker compose up
+
+## Testing
+
+### Manual
+
+```sh
+# Spin up and migrate a new test database.
+CUSTOM_DATABASE_PORT=5433 docker compose -p timetrack-test up database database-up -d
+
+# Set environment variables from example.env.
+...
+
+# Run tests.
+make test
+
+# Tear down the test database.
+docker compose -p timetrack-test down -v
 ```
 
 ## Demo
