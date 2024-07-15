@@ -1,5 +1,5 @@
 BEGIN;
 
--- TODO: Implement.
+-- TODO: Mirror 0_init.up.sql
 
 COMMIT;
