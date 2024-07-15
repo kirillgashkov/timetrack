@@ -62,6 +62,7 @@ type HealthResponse struct {
 type ReportDurationResponse struct {
 	Hours   int `json:"hours"`
 	Minutes int `json:"minutes"`
+	Seconds int `json:"seconds"`
 }
 
 // ReportRequest defines model for ReportRequest.

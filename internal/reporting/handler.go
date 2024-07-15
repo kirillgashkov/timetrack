@@ -55,6 +55,7 @@ func (h *Handler) PostUsersIdReport(w http.ResponseWriter, r *http.Request, id i
 			Duration: &timetrackapi.ReportDurationResponse{
 				Hours:   int(t.Duration.Hours()),
 				Minutes: int(t.Duration.Minutes()) % 60,
+				Seconds: int(t.Duration.Seconds()) % 60,
 			},
 		}
 		resp = append(resp, reportTaskResp)
