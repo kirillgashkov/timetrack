@@ -649,11 +649,13 @@ components:
 
     ReportDurationResponse:
       type: object
-      required: [hours, minutes]
+      required: [hours, minutes, seconds]
       properties:
         hours:
           type: integer
         minutes:
+          type: integer
+        seconds:
           type: integer
 
     ReportTaskResponse:

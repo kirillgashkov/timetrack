@@ -134,7 +134,7 @@ func parseListUsersRequestFilter(params *timetrackapi.GetUsersParams) (*FilterUs
 		k, v := parts[0], parts[1]
 
 		switch k {
-		case "passport-number":
+		case "passport_number":
 			filter.PassportNumber = &v
 		case "surname":
 			filter.Surname = &v
@@ -142,7 +142,7 @@ func parseListUsersRequestFilter(params *timetrackapi.GetUsersParams) (*FilterUs
 			filter.Name = &v
 		case "patronymic":
 			filter.Patronymic = &sql.NullString{String: v, Valid: true}
-		case "patronymic-null":
+		case "patronymic_null":
 			patronymic := filter.Patronymic
 			if patronymic == nil {
 				patronymic = &sql.NullString{}
@@ -259,6 +259,10 @@ func (h *Handler) PatchUsersId(w http.ResponseWriter, r *http.Request, id int) {
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			apiutil.MustWriteError(w, "user not found", http.StatusNotFound)
+			return
+		}
+		if errors.Is(err, ErrAlreadyExists) {
+			apiutil.MustWriteError(w, "user already exists, perhaps a passport number conflict", http.StatusBadRequest)
 			return
 		}
 		apiutil.MustWriteInternalServerError(w, "failed to update user", err)

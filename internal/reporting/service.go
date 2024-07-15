@@ -59,11 +59,7 @@ func (s *ServiceImpl) queryReportTasks(ctx context.Context, userID int, from, to
 			   SUM(LEAST(COALESCE(works.stopped_at, $3), $3) - GREATEST(works.started_at, $2)) AS duration
 		FROM works
 		JOIN tasks ON works.task_id = tasks.id
-		WHERE user_id = $1
-		  AND (
-			  (works.started_at >= $2 AND works.started_at <= $3)
-			  OR (works.stopped_at >= $2 AND works.stopped_at <= $3)
-		  )
+		WHERE user_id = $1 AND works.started_at <= $3 AND works.stopped_at >= $2
 		GROUP BY tasks.id
 		ORDER BY duration DESC, task_id
 	`

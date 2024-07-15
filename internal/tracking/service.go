@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	ErrAlreadyStarted = errors.New("task already started")
-	ErrNotStarted     = errors.New("task not started")
+	ErrAlreadyStartedOrNotFound = errors.New("task already started or not found")
+	ErrNotStartedOrNotFound     = errors.New("task not started or not found")
 )
 
 type UserID int
@@ -47,7 +47,7 @@ func (s *ServiceImpl) StartTask(ctx context.Context, taskID TaskID, userID UserI
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
-			return ErrAlreadyStarted
+			return ErrAlreadyStartedOrNotFound
 		}
 		return errors.Join(errors.New("failed to insert work"), err)
 	}
@@ -79,7 +79,7 @@ func (s *ServiceImpl) StopTask(ctx context.Context, taskID TaskID, userID UserID
 	}
 	if tag.RowsAffected() != 1 {
 		if tag.RowsAffected() == 0 {
-			return ErrNotStarted
+			return ErrNotStartedOrNotFound
 		}
 		return fmt.Errorf("update work affected unexpected number of rows: %d", tag.RowsAffected())
 	}

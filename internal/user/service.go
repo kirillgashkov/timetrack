@@ -212,26 +212,26 @@ func buildSelectQuery(filter *FilterUser, limit, offset int) (string, []any) {
 	argIndex := 1
 
 	if filter.PassportNumber != nil {
-		whereConditions = append(whereConditions, `passport_number % $`+itoa(argIndex))
+		whereConditions = append(whereConditions, `passport_number ILIKE '%' || $`+itoa(argIndex)+` || '%'`)
 		args = append(args, *filter.PassportNumber)
 		argIndex++
 	}
 
 	if filter.Surname != nil {
-		whereConditions = append(whereConditions, `surname % $`+itoa(argIndex))
+		whereConditions = append(whereConditions, `surname ILIKE '%' || $`+itoa(argIndex)+` || '%'`)
 		args = append(args, *filter.Surname)
 		argIndex++
 	}
 
 	if filter.Name != nil {
-		whereConditions = append(whereConditions, `name % $`+itoa(argIndex))
+		whereConditions = append(whereConditions, `name ILIKE '%' || $`+itoa(argIndex)+` || '%'`)
 		args = append(args, *filter.Name)
 		argIndex++
 	}
 
 	if filter.Patronymic != nil {
 		if filter.Patronymic.Valid {
-			whereConditions = append(whereConditions, `patronymic % $`+itoa(argIndex))
+			whereConditions = append(whereConditions, `patronymic ILIKE '%' || $`+itoa(argIndex)+` || '%'`)
 			args = append(args, *filter.Patronymic)
 			argIndex++
 		} else {
@@ -240,7 +240,7 @@ func buildSelectQuery(filter *FilterUser, limit, offset int) (string, []any) {
 	}
 
 	if filter.Address != nil {
-		whereConditions = append(whereConditions, `address % $`+itoa(argIndex))
+		whereConditions = append(whereConditions, `address ILIKE '%' || $`+itoa(argIndex)+` || '%'`)
 		args = append(args, *filter.Address)
 		argIndex++
 	}
