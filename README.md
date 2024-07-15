@@ -84,10 +84,6 @@ architecture, each module implements the relevant API handlers in a struct in `h
 embedded in the main `Handler` struct in [`app/api/handler.go`](internal/app/api/handler.go) and used in the
 [`app/api/server.go`](internal/app/api/server.go) to create the server.
 
-### Database
-
-TBA.
-
 ## Usage
 
 ### Manual
