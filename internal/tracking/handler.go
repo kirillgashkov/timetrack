@@ -25,8 +25,8 @@ func (h *Handler) PostTasksIdStart(w http.ResponseWriter, r *http.Request, id in
 
 	err := h.service.StartTask(r.Context(), TaskID(id), UserID(currentUser.ID))
 	if err != nil {
-		if errors.Is(err, ErrAlreadyStarted) {
-			apiutil.MustWriteError(w, "task already started", http.StatusBadRequest)
+		if errors.Is(err, ErrAlreadyStartedOrNotFound) {
+			apiutil.MustWriteError(w, "task already started or not found", http.StatusBadRequest)
 			return
 		}
 		apiutil.MustWriteInternalServerError(w, "failed to start task", err)
@@ -44,8 +44,8 @@ func (h *Handler) PostTasksIdStop(w http.ResponseWriter, r *http.Request, id int
 
 	err := h.service.StopTask(r.Context(), TaskID(id), UserID(currentUser.ID))
 	if err != nil {
-		if errors.Is(err, ErrNotStarted) {
-			apiutil.MustWriteError(w, "task not started", http.StatusBadRequest)
+		if errors.Is(err, ErrNotStartedOrNotFound) {
+			apiutil.MustWriteError(w, "task not started or not found", http.StatusBadRequest)
 			return
 		}
 		apiutil.MustWriteInternalServerError(w, "failed to stop task", err)
