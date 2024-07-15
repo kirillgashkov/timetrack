@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kirillgashkov/timetrack/internal/app/database"
 )
 
 var (
@@ -33,10 +33,10 @@ type Service interface {
 }
 
 type ServiceImpl struct {
-	db *pgxpool.Pool
+	db database.DB
 }
 
-func NewServiceImpl(db *pgxpool.Pool) *ServiceImpl {
+func NewServiceImpl(db database.DB) *ServiceImpl {
 	return &ServiceImpl{db: db}
 }
 
